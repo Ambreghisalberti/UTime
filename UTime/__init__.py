@@ -2,10 +2,11 @@ import torch
 from torch.utils.data import Dataset
 from swapp.windowing import make_windows
 
+
 class Windows(Dataset):
 
-    def __init__(self, all_data, position, omni_data, win_length, label_paths):
-        self.df = make_windows.prepare_df(all_data, position, omni_data, win_length, label_paths)
+    def __init__(self, all_data, position, omni_data, win_length, label_paths, labelled_days):
+        self.df = make_windows.prepare_df(all_data, position, omni_data, win_length, label_paths, labelled_days)
         self.win_length = win_length
 
     def __getitem__(self, i):
