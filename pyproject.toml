@@ -1,0 +1,43 @@
+[build-system]
+build-backend = "flit_core.buildapi"
+requires = ["flit_core"]
+
+[project]
+name = "UTime"
+version = "0.1.0"
+description = "A deep learning architecture for dense segmentation."
+keywords = ["deep-learning", "segmentation", "temporal-windows"]
+authors = [
+    { name = "Ambre Ghisalberti", email = "ambre.ghisalberti@lpp.polytechnique.fr" }
+]
+
+maintainers = [
+    { name = "Ambre Ghisalberti", email = "ambre.ghisalberti@lpp.polytechnique.fr" }
+]
+
+requires-python = ">=3.8"
+license = { file = "LICENSE" }
+readme = "README.md"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Physics",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = ["torch", "pandas", "matplotlib", "numpy",
+    "space @ git+https://github.com/LaboratoryOfPlasmaPhysics/space.git@main",
+    "space @ git+https://github.com/Ambreghisalberti/swapp.git@master",
+    "space @ git+https://github.com/Ambreghisalberti/UTime.git@master"]
+
+
+[project.urls]
+homepage = "https://github.com/Ambreghisalberti/UTime"
+
+
