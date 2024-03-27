@@ -4,8 +4,8 @@ import torch
 import time
 import matplotlib.pyplot as plt
 import torch.optim as optim
-from CostFunctions import WeightedMSE, WeightedBCE
-import EarlyStopping
+from .CostFunctions import WeightedMSE, WeightedBCE
+from .EarlyStopping import EarlyStopping
 
 
 class Training():
