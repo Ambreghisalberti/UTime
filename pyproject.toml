@@ -33,8 +33,8 @@ classifiers = [
 ]
 dependencies = ["torch", "pandas", "matplotlib", "numpy",
     "space @ git+https://github.com/LaboratoryOfPlasmaPhysics/space.git@main",
-    "space @ git+https://github.com/Ambreghisalberti/swapp.git@main",
-    "space @ git+https://github.com/Ambreghisalberti/UTime.git@master"]
+    "swapp @ git+https://github.com/Ambreghisalberti/swapp.git@main",
+    "UTime @ git+https://github.com/Ambreghisalberti/UTime.git@master"]
 
 
 [project.urls]
