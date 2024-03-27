@@ -6,7 +6,8 @@ from swapp.windowing import make_windows
 class Windows(Dataset):
 
     def __init__(self, all_data, position, omni_data, win_length, label_paths, labelled_days):
-        self.df, self.pos, self.omni = make_windows.prepare_df(all_data, position, omni_data, win_length, label_paths, labelled_days)
+        self.df, self.pos, self.omni = make_windows.prepare_df(all_data, position, omni_data, win_length, label_paths,
+                                                               labelled_days)
         self.win_length = win_length
 
     def __getitem__(self, i):
