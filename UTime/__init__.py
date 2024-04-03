@@ -6,8 +6,14 @@ import pandas as pd
 
 class Windows(Dataset):
 
-    def __init__(self, all_data, position, omni_data, win_duration, label_paths, labelled_days, ml_features):
-        self.df, self.pos, self.omni = prepare_df(all_data, position, omni_data, win_duration, label_paths,
+    def __init__(self, all_data, position, omni_data, win_duration, ml_features, **kwargs):
+        is_prepared = kwargs.get('is_prepared', False)
+        if is_prepared:
+            self.df, self.pos, self.omni = all_data, position, omni_data
+        else:
+            label_paths = kwargs["label_paths"]
+            labelled_days = kwargs["labelled_days"]
+            self.df, self.pos, self.omni = prepare_df(all_data, position, omni_data, win_duration, label_paths,
                                                                labelled_days)
         self.omni = self.omni.rename(columns={col:"OMNI_"+col for col in self.omni.columns})
         self.dataset = pd.concat([self.df, self.omni], axis = 1)
