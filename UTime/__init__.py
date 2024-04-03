@@ -26,7 +26,7 @@ class Windows(Dataset):
         subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.ml_features + ['label']]
         labels = subdf['label'].values
         subdf.drop(['label'], axis=1, inplace=True)
-        self.inputs = torch.tensor(np.transpose(subdf.values)).double()
+        self.inputs = torch.tensor(np.transpose(subdf.values).reshape((len(self.ml_features),1,self.win_length))).double()
         self.labels = torch.tensor(labels).double()
         self.times = subdf.index.values
         return i, self.inputs, self.labels
