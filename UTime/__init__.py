@@ -28,7 +28,7 @@ class Windows(Dataset):
         self.inputs = torch.tensor(subdf.values).double()
         self.labels = torch.tensor(labels).double()
         self.times = subdf.index.values
-        return self.times, self.inputs, self.labels
+        return i, self.inputs, self.labels
 
     def __len__(self):
         return len(self.dataset) // self.win_length
