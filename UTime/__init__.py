@@ -31,4 +31,4 @@ class Windows(Dataset):
         return self.times, self.inputs, self.labels
 
     def __len__(self):
-        return len(self.df) // self.win_length
+        return len(self.dataset) // self.win_length
