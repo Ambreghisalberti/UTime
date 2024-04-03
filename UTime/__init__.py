@@ -3,6 +3,7 @@ from torch.utils.data import Dataset
 from swapp.windowing.make_windows import prepare_df
 from swapp.windowing.make_windows.utils import select_windows, durationToNbrPts, time_resolution
 import pandas as pd
+import numpy as np
 
 class Windows(Dataset):
 
@@ -25,7 +26,7 @@ class Windows(Dataset):
         subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.ml_features + ['label']]
         labels = subdf['label'].values
         subdf.drop(['label'], axis=1, inplace=True)
-        self.inputs = torch.tensor(subdf.values).double()
+        self.inputs = torch.tensor(np.transpose(subdf.values)).double()
         self.labels = torch.tensor(labels).double()
         self.times = subdf.index.values
         return i, self.inputs, self.labels
