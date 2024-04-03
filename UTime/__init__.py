@@ -16,7 +16,7 @@ class Windows(Dataset):
         self.ml_features = ml_features
 
     def __getitem__(self, i):
-        subdf = self.df.iloc[i * self.win_length : (i+1) * self.win_length][self.ml_features + ['label']]
+        subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.ml_features + ['label']]
         labels = subdf['label'].values
         subdf.drop(['label'], axis=1, inplace=True)
         self.inputs = torch.tensor(subdf.values).double()
