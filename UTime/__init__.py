@@ -14,7 +14,7 @@ class Windows(Dataset):
         self.win_length = durationToNbrPts(win_duration, time_resolution(all_data))
 
     def __getitem__(self, i):
-        subdf = self.df.iloc[i:i + self.win_length]
+        subdf = self.df.iloc[i * self.win_length : (i+1) * self.win_length]
         labels = subdf['label'].values
         subdf.drop(['label'], axis=1, inplace=True)
         self.inputs = torch.tensor(subdf.values).double()
