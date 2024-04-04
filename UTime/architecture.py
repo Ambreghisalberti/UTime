@@ -83,7 +83,7 @@ class UTime(nn.Module):
             layers.append(nn.Upsample(size=(1, self.sizes[::-1][i])))
             layers.append(nn.Conv2d(self.filters[-i] + self.filters[-i - 1], self.filters[-i - 1],
                                     kernel_size=(1, self.kernels[-i]), padding='same'))
-            # layers.append(BatchNorm1d(num_features = self.filters[-i-1]))
+            layers.append(BatchNorm2d(num_features=self.filters[-i-1]))
             layers.append(nn.ReLU(inplace=True))
 
             # layers.append(nn.Conv2d(self.filters[-i-1], self.filters[-i-1], kernel_size=(1,self.kernels[-i]),
@@ -95,6 +95,8 @@ class UTime(nn.Module):
 
     def _build_classifier(self):
         layers = [Conv2d(self.filters[0], self.n_classes, kernel_size=(1, 1))]
+        layers.append(BatchNorm2d(num_features=self.n_classes))
+
         if self.n_classes == 1:
             layers.append(nn.Sigmoid())
         else:
