@@ -21,6 +21,8 @@ class Windows(Dataset):
             self.df, self.pos, self.omni = prepare_df(all_data, position, omni_data, win_duration, label_paths,
                                                                labelled_days)
         self.omni = self.omni.rename(columns={col:"OMNI_"+col for col in self.omni.columns})
+        self.omni = self.omni.ffill().bfill()
+
         self.dataset = pd.concat([self.df, self.omni], axis = 1)
         self.dataset = select_windows(self.dataset, ['isFull', 'isLabelled', 'encountersMSPandMSH'])
 
