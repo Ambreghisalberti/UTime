@@ -49,7 +49,7 @@ class Training():
         loss.backward()
         self.optimizer.step()
 
-        return loss
+        return loss.detach()
 
     def epoch(self, dl, **kwargs):
         # Training
