@@ -30,6 +30,7 @@ class EarlyStopping():
         self.val_loss = []
 
     def __call__(self, val_loss, model):
+        val_loss = val_loss.item()
         self.epoch += 1
         self.val_loss.append(val_loss)
 
