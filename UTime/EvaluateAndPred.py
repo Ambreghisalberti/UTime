@@ -15,13 +15,13 @@ class Model():
         with torch.no_grad():
             for i, inputs, labels in dl:
                 count += 1
-                loss += criterion(torch.flatten(self.forward(inputs.double())), torch.flatten(labels.double()))
+                loss += criterion(torch.flatten(self.forward(inputs.double())), torch.flatten(labels.double())).detach()
 
         if mirrored:
             for i, inputs, labels in dl:
                 count += 1
                 loss += criterion(torch.flatten(self.forward(inputs.flip(-1).double())),
-                                  torch.flatten(labels.flip(-1).double()))
+                                  torch.flatten(labels.flip(-1).double())).detach()
 
         return loss / count
 
