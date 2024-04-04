@@ -62,7 +62,7 @@ class Model():
 
         verbose = kwargs.get('verbose',True)
         if verbose:
-            disp = ConfusionMatrixDisplay(cm, display_labels=['BL', 'not_BL'])
+            disp = ConfusionMatrixDisplay(np.array(cm), display_labels=['BL', 'not_BL'])
             disp.plot()
 
         return cm
@@ -99,7 +99,7 @@ class Model():
         FPR = []
         thresholds = np.linspace(0, 1, 1000)
         for threshold in thresholds:
-            TP, FP, TN, FN = self.confusion_matrix(prediction=pred, target=target, threshold=threshold, verbose=False)
+            [[TP,FN],[FP,TN]] = self.confusion_matrix(prediction=pred, target=target, threshold=threshold, verbose=False)
             TPR.append(TP / (TP + FN))
             FPR.append(FP / (FP + TN))
 
