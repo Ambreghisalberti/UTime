@@ -54,7 +54,7 @@ class EarlyStopping():
             print("Validation loss decreased (" + str(round(self.min_loss, 6)) + " --> " + str(round(val_loss, 6)) +
                   ".  Saving model ...")
         torch.save(model.state_dict(), self.path)
-        self.min_loss = val_loss
+        self.min_loss = val_loss.item()
 
     def stopped(self):
         # load the last checkpoint with the best model

@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.metrics import ConfusionMatrixDisplay
 
 
 class Model():
@@ -57,12 +58,18 @@ class Model():
         FP += ((1 - target) * pred_class).sum()  # target = 0 and pred_class = 1
         FN += (target * (1 - pred_class)).sum()  # target = 1 and pred_class = 0
         TP, FP, TN, FN = TP.item(), FP.item(), TN.item(), FN.item()
+        cm = [[TP,FN],[FP,TN]]
 
-        return TP, FP, TN, FN
+        verbose = kwargs.get('verbose',True)
+        if verbose:
+            disp = ConfusionMatrixDisplay(cm, display_labels=['BL', 'not_BL'])
+            disp.plot()
+
+        return cm
 
     def scores(self, verbose=True, **kwargs):
         if ('TP' not in kwargs) | ('FP' not in kwargs) | ('TN' not in kwargs) | ('FN' not in kwargs):
-            TP, FP, TN, FN = self.confusion_matrix(**kwargs)
+            [[TP,FN],[FP,TN]] = self.confusion_matrix(verbose=False, **kwargs)
         else:
             TP = kwargs.get('TP')
             FP = kwargs.get('FP')
