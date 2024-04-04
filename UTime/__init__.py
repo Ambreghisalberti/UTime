@@ -27,7 +27,7 @@ class Windows(Dataset):
         self.dataset = select_windows(self.dataset, ['isFull', 'isLabelled', 'encountersMSPandMSH'])
 
         scaler = StandardScaler()
-        self.dataset.iloc[:,:] = scaler.fit_transform(self.dataset.iloc[:,:])
+        self.dataset.loc[:,ml_features] = scaler.fit_transform(self.dataset.loc[:,ml_features])
 
 
     def __getitem__(self, i):
