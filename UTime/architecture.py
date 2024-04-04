@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 from torch.nn import (MaxPool2d, Conv2d, Upsample, BatchNorm2d)
+from .EvaluateAndPred import Model
 
-
-class UTime(nn.Module):
+class UTime(nn.Module, Model):
     def __init__(self, n_classes,
                  n_channels,
                  n_time,
