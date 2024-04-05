@@ -25,13 +25,14 @@ class EarlyStopping():
         self.early_stop = False
         self.delta = delta
         self.path = path
-        self.epoch = 0
+        self.current_epoch = 0
         self.stop_epoch = None
         self.val_loss = []
 
     def __call__(self, val_loss, model):
         val_loss = val_loss.item()
-        self.epoch += 1
+        self.current_epoch += 1
+        self.model.epoch += 1
         self.val_loss.append(val_loss)
 
         if self.min_loss is None:
@@ -61,9 +62,9 @@ class EarlyStopping():
         # load the last checkpoint with the best model
         self.model.load_state_dict(torch.load(self.path))
         if self.early_stop:
-            stop_epoch = self.epoch - self.counter
+            stop_epoch = self.current_epoch - self.counter
         else:
-            stop_epoch = self.epoch
+            stop_epoch = self.current_epoch
         self.stop_epoch = stop_epoch
 
         if self.verbose:
@@ -73,11 +74,11 @@ class EarlyStopping():
         print("Total training done in " + str(dt) + ' seconds and ' + str(self.stop_epoch) + ' epochs.')
 
         plt.figure()
-        plt.plot(np.arange(1, self.epoch + 1), self.model.train_loss, label='Trainset')
-        plt.plot(np.arange(1, self.epoch + 1), self.val_loss, label='Validation set')
+        plt.plot(np.arange(1, self.current_epoch + 1), self.model.train_loss, label='Trainset')
+        plt.plot(np.arange(1, self.current_epoch + 1), self.val_loss, label='Validation set')
         plt.xlabel('Epochs')
         plt.ylabel('Loss')
-        plt.title('num_epochs = ' + str(self.epoch))
+        plt.title('num_epochs = ' + str(self.stop_epoch))
         # find position of lowest validation loss
         # minposs = np.argmin(loss_over_iterations_val)
         plt.axvline(self.stop_epoch, linestyle='--', color='r', label='Stopping Checkpoint')

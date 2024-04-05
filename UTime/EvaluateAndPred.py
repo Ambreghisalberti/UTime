@@ -1,8 +1,7 @@
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import ConfusionMatrixDisplay
-
+from sklearn.metrics import ConfusionMatrixDisplay, auc
 
 class Model():
 
@@ -109,6 +108,26 @@ class Model():
             plt.plot(thresholds, thresholds, color='grey', alpha=0.5, linestyle='--')
             plt.xlabel("False Positive Rate")
             plt.ylabel("True Positive Rate")
-            plt.title("ROC")
+            plt.title(f"ROC, AUC = {round(auc(FPR, TPR),2)}")
+
+            # Scatter a dot corresponding to a threshold close to 0.5
+            threshold_plus = thresholds[thresholds >= 0.5][0] # First threshold above 0.5
+            threshold_minus = thresholds[thresholds <= 0.5][-1] # Last threshold below 0.5
+            if threshold_plus-0.5 < 0.5-threshold_minus:
+                plt.scatter(FPR[thresholds >= 0.5][0], TPR[thresholds >= 0.5][0], s = 10, color = 'r')
+            else:
+                plt.scatter(FPR[thresholds <= 0.5][-1], TPR[thresholds <= 0.5][-1], s = 10, color = 'r')
 
         return FPR, TPR
+
+    def find_best_threshold(self, dl, **kwargs):
+        pred, target = self.compute_pred_and_target(dl)
+
+        F1_scores = []
+        thresholds = np.linspace(0, 1, 1000)
+        for threshold in thresholds:
+            [[TP, FN], [FP, TN]] = self.confusion_matrix(prediction=pred, target=target, threshold=threshold,
+                                                         verbose=False)
+            F1_scores.append(2*TP / (2*TP + FN + FP))
+
+        return thresholds[np.argmax(F1_scores)]
