@@ -108,15 +108,18 @@ class Model():
             plt.plot(thresholds, thresholds, color='grey', alpha=0.5, linestyle='--')
             plt.xlabel("False Positive Rate")
             plt.ylabel("True Positive Rate")
-            plt.title(f"ROC, AUC = {round(auc(FPR, TPR),2)}")
 
             # Scatter a dot corresponding to a threshold close to 0.5
             threshold_plus = thresholds[thresholds >= 0.5][0] # First threshold above 0.5
             threshold_minus = thresholds[thresholds <= 0.5][-1] # Last threshold below 0.5
+            best_threshold = self.find_best_threshold(dl, **kwargs)
             if threshold_plus-0.5 < 0.5-threshold_minus:
-                plt.scatter(FPR[thresholds >= 0.5][0], TPR[thresholds >= 0.5][0], s = 10, color = 'r')
+                plt.scatter(np.array(FPR)[thresholds >= 0.5][0], np.array(TPR)[thresholds >= 0.5][0], s = 10, color = 'r')
             else:
-                plt.scatter(FPR[thresholds <= 0.5][-1], TPR[thresholds <= 0.5][-1], s = 10, color = 'r')
+                plt.scatter(np.array(FPR)[thresholds <= 0.5][-1], np.array(TPR)[thresholds <= 0.5][-1], s = 10, color = 'r')
+            plt.scatter(FPR[best_threshold], TPR[best_threshold], s=10, color='g')
+
+            plt.title(f"ROC, AUC = {round(auc(FPR, TPR),2)}, best_threshold = {best_threshold}")
 
         return FPR, TPR
 
