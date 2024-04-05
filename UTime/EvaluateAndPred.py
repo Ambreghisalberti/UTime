@@ -91,6 +91,15 @@ class Model():
 
         return precision, recall, F1
 
+
+    def scatter_threshold_on_ROC(self, threshold, FPR, TPR, thresholds, **kwargs):
+        threshold_plus = thresholds[thresholds >= threshold][0]  # First threshold above wanted value
+        threshold_minus = thresholds[thresholds <= threshold][-1]  # Last threshold below wanted value
+        if threshold_plus - threshold < threshold - threshold_minus:
+            plt.scatter(np.array(FPR)[thresholds >= threshold][0], np.array(TPR)[thresholds >= 0.5][0], s=10, **kwargs)
+        else:
+            plt.scatter(np.array(FPR)[thresholds <= 0.5][-1], np.array(TPR)[thresholds <= 0.5][-1], s=10, **kwargs)
+
     def ROC(self, dl, verbose=True, **kwargs):
         pred, target = self.compute_pred_and_target(dl)
 
@@ -110,14 +119,9 @@ class Model():
             plt.ylabel("True Positive Rate")
 
             # Scatter a dot corresponding to a threshold close to 0.5
-            threshold_plus = thresholds[thresholds >= 0.5][0] # First threshold above 0.5
-            threshold_minus = thresholds[thresholds <= 0.5][-1] # Last threshold below 0.5
+            self.scatter_threshold_on_ROC(self, 0.5, FPR, TPR, thresholds, color='red')
             best_threshold = self.find_best_threshold(dl, **kwargs)
-            if threshold_plus-0.5 < 0.5-threshold_minus:
-                plt.scatter(np.array(FPR)[thresholds >= 0.5][0], np.array(TPR)[thresholds >= 0.5][0], s = 10, color = 'r')
-            else:
-                plt.scatter(np.array(FPR)[thresholds <= 0.5][-1], np.array(TPR)[thresholds <= 0.5][-1], s = 10, color = 'r')
-            plt.scatter(FPR[best_threshold], TPR[best_threshold], s=10, color='g')
+            self.scatter_threshold_on_ROC(self, best_threshold, FPR, TPR, thresholds, color='green')
 
             plt.title(f"ROC, AUC = {round(auc(FPR, TPR),2)}, best_threshold = {best_threshold}")
 
