@@ -119,9 +119,9 @@ class Model():
             plt.ylabel("True Positive Rate")
 
             # Scatter a dot corresponding to a threshold close to 0.5
-            self.scatter_threshold_on_ROC(self, 0.5, FPR, TPR, thresholds, color='red')
+            self.scatter_threshold_on_ROC(0.5, FPR, TPR, thresholds, color='red')
             best_threshold = self.find_best_threshold(dl, **kwargs)
-            self.scatter_threshold_on_ROC(self, best_threshold, FPR, TPR, thresholds, color='green')
+            self.scatter_threshold_on_ROC(best_threshold, FPR, TPR, thresholds, color='green')
 
             plt.title(f"ROC, AUC = {round(auc(FPR, TPR),2)}, best_threshold = {best_threshold}")
 
