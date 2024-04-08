@@ -22,7 +22,7 @@ class Training():
         self.validation = kwargs.get('validation', False)
         self.dlval = kwargs.get('dlval')
         self.val_loss = []
-        self.lr = kwargs.get('optimizer', 0.001)
+        self.lr = kwargs.get('lr', 0.001)
         self.optimizer = kwargs.get('optimizer', optim.Adam(self.model.parameters(), self.lr))
 
         self.verbose = kwargs.get('verbose', False)
