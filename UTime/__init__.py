@@ -24,11 +24,14 @@ class Windows(Dataset):
         self.omni = self.omni.ffill().bfill()
 
         self.dataset = pd.concat([self.df, self.omni], axis = 1)
-        self.dataset = select_windows(self.dataset, ['isFull', 'isLabelled', 'encountersMSPandMSH'])
+        conditions = ['isFull', 'encountersMSPandMSH']
+        self.all_dataset = select_windows(self.dataset, conditions)
+        self.dataset = select_windows(self.dataset, ['isLabelled']+conditions)
 
         scaler = StandardScaler()
         self.dataset.loc[:,ml_features] = scaler.fit_transform(self.dataset.loc[:,ml_features])
-
+        self.all_dataset.loc[:,ml_features] = scaler.transform(self.all_dataset.loc[:,ml_features])
+        self.scaler = scaler
 
     def __getitem__(self, i):
         subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.ml_features + ['label']]

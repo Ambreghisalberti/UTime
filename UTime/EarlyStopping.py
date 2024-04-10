@@ -66,10 +66,13 @@ class EarlyStopping():
             stop_epoch = self.current_epoch
         self.stop_epoch = stop_epoch
 
+        print(f'function stopped : {self.stop_epoch}')
         if self.verbose:
             print("Early stopping at epoch " + str(self.stop_epoch))
 
     def info(self, name, dt):
+        print(f'start info : {self.stop_epoch}')
+        print(self.stop_epoch)
         print("Total training done in " + str(dt) + ' seconds and ' + str(self.stop_epoch) + ' epochs.')
 
         plt.figure()
@@ -77,9 +80,14 @@ class EarlyStopping():
         plt.plot(np.arange(1, self.current_epoch + 1), self.val_loss, label='Validation set')
         plt.xlabel('Epochs')
         plt.ylabel('Loss')
+
+        print(f'Title plot : {self.stop_epoch}')
+        print(self.stop_epoch)
         plt.title('num_epochs = ' + str(self.stop_epoch))
         # find position of lowest validation loss
         # minposs = np.argmin(loss_over_iterations_val)
+        print(f'axvhline : {self.stop_epoch}')
+        print(self.stop_epoch)
         plt.axvline(self.stop_epoch, linestyle='--', color='r', label='Stopping Checkpoint')
         plt.legend()
         plt.savefig("models_regions/figures/CNN_" + name + ".png")
