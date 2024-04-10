@@ -96,14 +96,16 @@ class Training():
             while (self.current_epoch < self.epochs) & (early_stopping.early_stop == False):
                 self.epoch(self.dltrain, **kwargs)
                 early_stopping(self.val_loss[-1], self.model)
+            self.stop_epoch = early_stopping.stop_epoch
 
         else:
             for e in range(self.epochs):
                 self.epoch(self.dltrain, **kwargs)
+            self.stop_epoch = self.epochs
 
         t_end = time.time()
         if self.verbose_plot:
-            print(f"Total training done in {t_end - t_begin} seconds and {self.current_epoch} epochs.")
+            print(f"Total training done in {t_end - t_begin} seconds and {self.stop_epoch} epochs.")
 
             plt.figure()
             plt.plot(np.arange(self.current_epoch), torch.tensor(self.training_loss).detach().numpy(),
@@ -111,7 +113,7 @@ class Training():
             plt.xlabel('Epochs')
             plt.ylabel('Loss')
             name = kwargs.get('name', str(datetime.now())[:10])
-            plt.title(f'{name}\nnum_epochs = {self.current_epoch}.')
+            plt.title(f'{name}\nnum_epochs = {self.stop_epoch}.')
             if self.validation:
                 plt.plot(np.arange(self.current_epoch), torch.tensor(self.val_loss).detach().numpy(),
                          label='Validation set')
