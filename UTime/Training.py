@@ -45,7 +45,7 @@ class Training():
 
     def backward_propagation(self, batch, labels):
         batch = batch.to(self.device)
-
+        labels = labels.to(self.device)
         self.optimizer.zero_grad()
         outputs = self.model.forward(batch.double())
         loss = self.train_criterion(torch.flatten(outputs), torch.flatten(labels)).double()
