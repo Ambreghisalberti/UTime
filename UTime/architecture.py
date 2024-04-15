@@ -13,6 +13,8 @@ class UTime(nn.Module, Model):
                  poolings):
 
         super().__init__()
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
         self.depth = depth
         self.n_classes = n_classes
         self.n_channels = n_channels

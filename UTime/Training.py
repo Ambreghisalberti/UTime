@@ -28,8 +28,7 @@ class Training():
         self.verbose = kwargs.get('verbose', False)
         self.verbose_plot = kwargs.get('verbose_plot', False)
 
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.model = self.model.to(self.device)
+        self.model = self.model.to(self.model.device)
 
         # self.train_criterion = kwargs.get('train_criterion',nn.CrossEntropyLoss(reduction='mean'))
         # Look into it. Rather choose a weighted function later.
@@ -44,8 +43,8 @@ class Training():
         self.test_criterion = kwargs.get('test_criterion', WeightedMSE(self.dltest))
 
     def backward_propagation(self, batch, labels):
-        batch = batch.to(self.device)
-        labels = labels.to(self.device)
+        batch = batch.to(self.model.device)
+        labels = labels.to(self.model.device)
         self.optimizer.zero_grad()
         outputs = self.model.forward(batch.double())
         loss = self.train_criterion(torch.flatten(outputs), torch.flatten(labels)).double()
