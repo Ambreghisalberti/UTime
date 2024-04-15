@@ -28,6 +28,11 @@ class Training():
         self.verbose = kwargs.get('verbose', False)
         self.verbose_plot = kwargs.get('verbose_plot', False)
 
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.model = self.model.to(device)
+        self.dltrain = self.dltrain.to(device)
+        self.dltest = self.dltest.to(device)
+
         # self.train_criterion = kwargs.get('train_criterion',nn.CrossEntropyLoss(reduction='mean'))
         # Look into it. Rather choose a weighted function later.
         # self.val_criterion = kwargs.get('val_criterion',nn.CrossEntropyLoss(reduction='mean'))
