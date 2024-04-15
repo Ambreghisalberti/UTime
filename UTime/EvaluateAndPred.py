@@ -39,7 +39,7 @@ class Model():
         pred = np.array([])
         for i, X, y in dl:
             X = X.to(self.device)
-            target = np.concatenate((target, torch.flatten(y)).numpy())
+            target = np.concatenate((target, torch.flatten(y).numpy()))
             pred = np.concatenate((pred, torch.Tensor.cpu(torch.flatten(self.forward(X))).detach().numpy()))
 
         if mirrored:
