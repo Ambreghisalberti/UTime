@@ -20,11 +20,13 @@ class Model():
         count = 0
         with torch.no_grad():
             for i, inputs, labels in dl:
+                inputs = inputs.to(self.device)
                 count += 1
                 loss += criterion(torch.flatten(self.forward(inputs.double())), torch.flatten(labels.double())).detach()
 
         if mirrored:
             for i, inputs, labels in dl:
+                inputs = inputs.to(self.device)
                 count += 1
                 loss += criterion(torch.flatten(self.forward(inputs.flip(-1).double())),
                                   torch.flatten(labels.flip(-1).double())).detach()
@@ -35,11 +37,13 @@ class Model():
         target = np.array([])
         pred = np.array([])
         for i, X, y in dl:
+            X = X.to(self.device)
             target = np.concatenate((target, torch.flatten(y).numpy()))
             pred = np.concatenate((pred, torch.flatten(self.forward(X)).detach().numpy()))
 
         if mirrored:
             for i, X, y in dl:
+                X = X.to(self.device)
                 target = np.concatenate((target, torch.flatten(y.flip(-1)).numpy()))
                 pred = np.concatenate((pred, torch.flatten(self.forward(X.flip(-1))).detach().numpy()))
 
