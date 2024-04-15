@@ -8,6 +8,7 @@ import copy
 from torch.utils.data import random_split, DataLoader
 from .Training import Training
 
+
 class Model():
 
     # def __init__(self,model,**kwargs):
@@ -206,5 +207,6 @@ class Model():
 
 
         return precisions, recalls, F1_scores, models
+
 
 

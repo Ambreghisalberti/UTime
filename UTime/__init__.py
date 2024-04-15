@@ -1,10 +1,11 @@
 import torch
 from torch.utils.data import Dataset
 from swapp.windowing.make_windows import prepare_df
-from swapp.windowing.make_windows.utils import select_windows, durationToNbrPts, time_resolution
+from swapp.windowing.make_windows.utils import select_windows, durationToNbrPts, time_resolution, nbr_windows
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
+
 
 class Windows(Dataset):
 
@@ -24,7 +25,7 @@ class Windows(Dataset):
         self.omni = self.omni.ffill().bfill()
 
         self.dataset = pd.concat([self.df, self.omni], axis = 1)
-        conditions = ['isFull', 'encountersMSPandMSH']
+        conditions = ['isDayside', 'isFull', 'encountersMSPandMSH']
         self.all_dataset = select_windows(self.dataset, conditions)
         self.dataset = select_windows(self.dataset, ['isLabelled']+conditions)
 
@@ -44,3 +45,23 @@ class Windows(Dataset):
 
     def __len__(self):
         return len(self.dataset) // self.win_length
+
+    def all_pred(self, threshold=0.5):
+        nbrWindows = nbr_windows(self.all_dataset, self.win_length)
+        pred = pd.DataFrame(-1.0 * np.arange(len(self.all_dataset)), index=self.all_dataset.index.values,
+                            columns=['pred'])
+        print(f"Number of windows = {nbrWindows}.")
+
+        for i in range(nbrWindows):
+            inputs = self.all_dataset.iloc[i * self.win_length: (i + 1) * self.win_length][self.ml_features]
+            inputs = torch.tensor(
+                np.transpose(inputs.values).reshape((1, len(self.ml_features), 1, self.win_length))).double()
+
+            pred.iloc[i * self.win_length: (i + 1) * self.win_length, -1] = self.forward(
+                inputs).flatten().detach().numpy()
+            if i % (nbrWindows // 10) == 0:
+                print(f"{round(i / nbrWindows * 100, 2)}% of windows predicted.")
+
+        pred['predicted_class'] = pred.pred.values > threshold
+
+        return pred
