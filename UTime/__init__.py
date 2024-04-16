@@ -46,7 +46,7 @@ class Windows(Dataset):
     def __len__(self):
         return len(self.dataset) // self.win_length
 
-    def all_pred(self, threshold=0.5):
+    def all_pred(self, model, threshold=0.5):
         nbrWindows = nbr_windows(self.all_dataset, self.win_length)
         pred = pd.DataFrame(-1.0 * np.arange(len(self.all_dataset)), index=self.all_dataset.index.values,
                             columns=['pred'])
@@ -57,7 +57,7 @@ class Windows(Dataset):
             inputs = torch.tensor(
                 np.transpose(inputs.values).reshape((1, len(self.ml_features), 1, self.win_length))).double()
 
-            pred.iloc[i * self.win_length: (i + 1) * self.win_length, -1] = self.forward(
+            pred.iloc[i * self.win_length: (i + 1) * self.win_length, -1] = model.forward(
                 inputs).flatten().detach().numpy()
             if i % (nbrWindows // 10) == 0:
                 print(f"{round(i / nbrWindows * 100, 2)}% of windows predicted.")
