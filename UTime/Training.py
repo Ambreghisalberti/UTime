@@ -43,7 +43,11 @@ class Training():
         self.test_criterion = kwargs.get('test_criterion', WeightedMSE(self.dltest))
 
     def backward_propagation(self, batch, labels):
-        batch = batch.to(self.model.device)
+        if isinstance(batch, tuple):
+            a,b = batch
+            batch = (a.to(self.model.device), b.to(self.model.device))
+        else:
+            batch = batch.to(self.model.device)
         labels = labels.to(self.model.device)
         self.optimizer.zero_grad()
         outputs = self.model.forward(batch.double())
