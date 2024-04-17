@@ -41,7 +41,7 @@ class Model():
 
         return loss / count
 
-    def compute_pred_and_target(self, dl, mirrored=True):
+    def compute_pred_and_target(self, dl, mirrored=False):
         target = np.array([])
         pred = np.array([])
         for i, X, y in dl:
@@ -61,11 +61,11 @@ class Model():
                     a, b = X
                     X = (a.to(self.device), b.to(self.device))
                 elif isinstance(X, list):
-                    X = [X[0].to(self.device), X[1].to(self.device)]
+                    flipped_X = [X[0].to(self.device).flip(-1), X[1].to(self.device).flip(-1)]
                 else:
-                    X = X.to(self.device)
+                    flipped_X = X.to(self.device).flip(-1)
                 target = np.concatenate((target, torch.flatten(y.flip(-1)).numpy()))
-                pred = np.concatenate((pred, torch.Tensor.cpu(torch.flatten(self.forward(X.flip(-1)))).detach().numpy()))
+                pred = np.concatenate((pred, torch.Tensor.cpu(torch.flatten(self.forward(flipped_X))).detach().numpy()))
 
         return pred, target
 
