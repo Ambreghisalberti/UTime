@@ -20,17 +20,23 @@ class Model():
         count = 0
         with torch.no_grad():
             for i, inputs, labels in dl:
-                inputs = inputs.to(self.device)
+                if isinstance(inputs, list):
+                    inputs = [inputs[0].to(self.device).double(), inputs[1].to(self.device).double()]
+                else:
+                    inputs = inputs.to(self.device).double()
                 labels = labels.to(self.device)
                 count += 1
-                loss += criterion(torch.flatten(self.forward(inputs.double())), torch.flatten(labels.double())).detach()
+                loss += criterion(torch.flatten(self.forward(inputs)), torch.flatten(labels.double())).detach()
 
         if mirrored:
             for i, inputs, labels in dl:
-                inputs = inputs.to(self.device)
+                if isinstance(inputs, list):
+                    flipped_inputs = [inputs[0].to(self.device).double().flip(-1), inputs[1].to(self.device).double().flip(-1)]
+                else:
+                    flipped_inputs = inputs.to(self.device).double().flip(-1)
                 labels = labels.to(self.device)
                 count += 1
-                loss += criterion(torch.flatten(self.forward(inputs.flip(-1).double())),
+                loss += criterion(torch.flatten(self.forward(flipped_inputs)),
                                   torch.flatten(labels.flip(-1).double())).detach()
 
         return loss / count
@@ -39,13 +45,25 @@ class Model():
         target = np.array([])
         pred = np.array([])
         for i, X, y in dl:
-            X = X.to(self.device)
+            if isinstance(X, tuple):
+                a,b = X
+                X = (a.to(self.device), b.to(self.device))
+            elif isinstance(X, list):
+                X = [X[0].to(self.device), X[1].to(self.device)]
+            else:
+                X = X.to(self.device)
             target = np.concatenate((target, torch.flatten(y).numpy()))
             pred = np.concatenate((pred, torch.Tensor.cpu(torch.flatten(self.forward(X))).detach().numpy()))
 
         if mirrored:
             for i, X, y in dl:
-                X = X.to(self.device)
+                if isinstance(X, tuple):
+                    a, b = X
+                    X = (a.to(self.device), b.to(self.device))
+                elif isinstance(X, list):
+                    X = [X[0].to(self.device), X[1].to(self.device)]
+                else:
+                    X = X.to(self.device)
                 target = np.concatenate((target, torch.flatten(y.flip(-1)).numpy()))
                 pred = np.concatenate((pred, torch.Tensor.cpu(torch.flatten(self.forward(X.flip(-1)))).detach().numpy()))
 
