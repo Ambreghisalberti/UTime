@@ -62,12 +62,22 @@ class Training():
         loss = 0
         count = 0
         for i, inputs, labels in dl:
-            loss += self.backward_propagation(inputs.double(), labels.double()).double()
+            if isinstance(inputs, tuple):
+                a,b = inputs
+                inputs = a.double(), b.double()
+            else:
+                inputs = inputs.double()
+            loss += self.backward_propagation(inputs, labels.double()).double()
             count += 1
 
         if self.mirrored:
             for i, inputs, labels in dl:
-                loss += self.backward_propagation(inputs.flip(-1).double(), labels.flip(-1).double()).double()
+                if isinstance(inputs, tuple):
+                    a, b = inputs
+                    flipped_inputs = a.flip(-1).double(), b.flip(-1).double()
+                else:
+                    flipped_inputs = inputs.flip(-1).double()
+                loss += self.backward_propagation(flipped_inputs, labels.flip(-1).double()).double()
                 count += 1
 
         self.training_loss.append(loss / count)  # On one batch
