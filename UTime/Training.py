@@ -62,8 +62,8 @@ class Training():
         loss = 0
         count = 0
         for i, inputs, labels in dl:
-            if isinstance(inputs, tuple):
-                a,b = inputs
+            if isinstance(inputs, list):
+                a,b = inputs[0], inputs[1]
                 inputs = a.double(), b.double()
             else:
                 inputs = inputs.double()
@@ -72,8 +72,8 @@ class Training():
 
         if self.mirrored:
             for i, inputs, labels in dl:
-                if isinstance(inputs, tuple):
-                    a, b = inputs
+                if isinstance(inputs, list):
+                    a, b = inputs[0], inputs[1]
                     flipped_inputs = a.flip(-1).double(), b.flip(-1).double()
                 else:
                     flipped_inputs = inputs.flip(-1).double()
