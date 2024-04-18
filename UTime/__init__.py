@@ -9,9 +9,10 @@ from sklearn.preprocessing import StandardScaler
 
 class Windows(Dataset):
 
-    def __init__(self, all_data, position, omni_data, win_duration, ml_features, **kwargs):
+    def __init__(self, all_data, position, omni_data, win_duration, ml_features, label, **kwargs):
         self.win_length = durationToNbrPts(win_duration, time_resolution(all_data))
         self.ml_features = ml_features
+        self.label = label
 
         is_prepared = kwargs.get('is_prepared', False)
         if is_prepared:
@@ -30,14 +31,14 @@ class Windows(Dataset):
         self.dataset = select_windows(self.dataset, ['isLabelled']+conditions)
 
         scaler = StandardScaler()
-        self.dataset.loc[:,ml_features] = scaler.fit_transform(self.dataset.loc[:,ml_features])
-        self.all_dataset.loc[:,ml_features] = scaler.transform(self.all_dataset.loc[:,ml_features])
+        self.dataset.loc[:,self.ml_features] = scaler.fit_transform(self.dataset.loc[:,self.ml_features])
+        self.all_dataset.loc[:,self.ml_features] = scaler.transform(self.all_dataset.loc[:,self.ml_features])
         self.scaler = scaler
 
     def __getitem__(self, i):
-        subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.ml_features + ['label']]
-        labels = subdf['label'].values
-        subdf.drop(['label'], axis=1, inplace=True)
+        subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.ml_features + [self.label]]
+        labels = subdf[self.label].values
+        subdf.drop([self.label], axis=1, inplace=True)
         self.inputs = torch.tensor(np.transpose(subdf.values).reshape((len(self.ml_features),1,self.win_length))).double()
         self.labels = torch.tensor(labels).double()
         self.times = subdf.index.values
@@ -45,23 +46,3 @@ class Windows(Dataset):
 
     def __len__(self):
         return len(self.dataset) // self.win_length
-
-    def all_pred(self, model, threshold=0.5):
-        nbrWindows = nbr_windows(self.all_dataset, self.win_length)
-        pred = pd.DataFrame(-1.0 * np.arange(len(self.all_dataset)), index=self.all_dataset.index.values,
-                            columns=['pred'])
-        print(f"Number of windows = {nbrWindows}.")
-
-        for i in range(nbrWindows):
-            inputs = self.all_dataset.iloc[i * self.win_length: (i + 1) * self.win_length][self.ml_features]
-            inputs = torch.tensor(
-                np.transpose(inputs.values).reshape((1, len(self.ml_features), 1, self.win_length))).double()
-
-            pred.iloc[i * self.win_length: (i + 1) * self.win_length, -1] = model.forward(
-                inputs).flatten().detach().numpy()
-            if i % (nbrWindows // 10) == 0:
-                print(f"{round(i / nbrWindows * 100, 2)}% of windows predicted.")
-
-        pred['predicted_class'] = pred.pred.values > threshold
-
-        return pred
