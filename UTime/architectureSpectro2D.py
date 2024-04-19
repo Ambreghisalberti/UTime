@@ -4,7 +4,7 @@ from torch.nn import (MaxPool2d, Conv2d, Upsample, BatchNorm2d)
 from UTime.EvaluateAndPred import Model
 
 
-class UTimeSpectro(nn.Module, Model):
+class UTime(nn.Module, Model):
     def __init__(self, n_classes,
                  n_time,
                  nb_channels,
