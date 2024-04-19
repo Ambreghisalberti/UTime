@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import torch.optim as optim
 from .CostFunctions import WeightedMSE, WeightedBCE
 from .EarlyStopping import EarlyStopping
-
+from torch.nn import MSELoss
 
 class Training():
 
@@ -30,17 +30,10 @@ class Training():
 
         self.model = self.model.to(self.model.device)
 
-        # self.train_criterion = kwargs.get('train_criterion',nn.CrossEntropyLoss(reduction='mean'))
-        # Look into it. Rather choose a weighted function later.
-        # self.val_criterion = kwargs.get('val_criterion',nn.CrossEntropyLoss(reduction='mean'))
-        # Look into it. Rather choose a weighted function later.
-        # self.test_criterion = kwargs.get('test_criterion',nn.CrossEntropyLoss(reduction='mean'))
-        # Look into it. Rather choose a weighted function later.
-
-        self.train_criterion = kwargs.get('train_criterion', WeightedMSE(self.dltrain))
+        self.train_criterion = kwargs.get('train_criterion', MSELoss())
         if self.validation:
-            self.val_criterion = kwargs.get('val_criterion', WeightedMSE(self.dlval))
-        self.test_criterion = kwargs.get('test_criterion', WeightedMSE(self.dltest))
+            self.val_criterion = kwargs.get('val_criterion', MSELoss())
+        self.test_criterion = kwargs.get('test_criterion', MSELoss())
 
     def backward_propagation(self, batch, labels):
         if isinstance(batch, tuple):
