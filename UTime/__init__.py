@@ -27,9 +27,10 @@ class DataForWindows(Dataset):
         self.omni = self.omni.ffill().bfill()
 
         self.dataset = pd.concat([self.df, self.omni], axis = 1)
-        conditions = ['isDayside', 'isFull', 'encountersMSPandMSH']
-        self.all_dataset = select_windows(self.dataset, conditions)
-        self.dataset = select_windows(self.dataset, ['isLabelled']+conditions)
+        self.conditions = kwargs.get('conditions',['isDayside', 'isFull', 'encountersMSPandMSH'])
+        self.all_dataset = select_windows(self.dataset, self.conditions)
+        self.labelled_condition = kwargs.get('labelled_condition', ['isLabelled'])
+        self.dataset = select_windows(self.dataset, self.labelled_condition + self.conditions)
 
         scaler = StandardScaler()
         self.dataset.loc[:,self.ml_features] = scaler.fit_transform(self.dataset.loc[:,self.ml_features])
