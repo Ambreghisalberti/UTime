@@ -41,7 +41,7 @@ class DataForWindows(Dataset):
 
 
 
-class Windows(Dataset, DataForWindows):
+class Windows(DataForWindows):
 
     def __getitem__(self, i):
         subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.moments_features + self.spectro_features + self.label]
@@ -81,7 +81,7 @@ class Windows(Dataset, DataForWindows):
 
 
 
-class WindowsSpectro2D(Dataset, DataForWindows):
+class WindowsSpectro2D(DataForWindows):
 
     def __getitem__(self, i):
         subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.spectro_features + self.label]
@@ -115,7 +115,7 @@ class WindowsSpectro2D(Dataset, DataForWindows):
         return pred
 
 
-class WindowsMoments(Dataset, DataForWindows):
+class WindowsMoments(DataForWindows):
 
     def __getitem__(self, i):
         subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.moments_features + [self.label]]
