@@ -6,12 +6,13 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 
+class DataForWindows(Dataset):
 
-class Windows(Dataset):
-
-    def __init__(self, all_data, position, omni_data, win_duration, ml_features, label, **kwargs):
+    def __init__(self, all_data, position, omni_data, win_duration, moments_features = [], spectro_features = [], label = ['label'], **kwargs):
         self.win_length = durationToNbrPts(win_duration, time_resolution(all_data))
-        self.ml_features = ml_features
+        self.moments_features = moments_features
+        self.spectro_features = spectro_features
+        self.ml_features = self.moments_features + self.spectro_features
         self.label = label
 
         is_prepared = kwargs.get('is_prepared', False)
@@ -35,14 +36,114 @@ class Windows(Dataset):
         self.all_dataset.loc[:,self.ml_features] = scaler.transform(self.all_dataset.loc[:,self.ml_features])
         self.scaler = scaler
 
+    def __len__(self):
+        return len(self.dataset) // self.win_length
+
+
+
+class Windows(Dataset, DataForWindows):
+
     def __getitem__(self, i):
-        subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.ml_features + [self.label]]
+        subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.moments_features + self.spectro_features + self.label]
         labels = subdf[self.label].values
         subdf.drop([self.label], axis=1, inplace=True)
-        self.inputs = torch.tensor(np.transpose(subdf.values).reshape((len(self.ml_features),1,self.win_length))).double()
+        self.spectro = torch.tensor(np.transpose(subdf[self.spectro_features].values).reshape((1, len(self.spectro_features), self.win_length))).double()
+        self.moments = torch.tensor(np.transpose(subdf[self.moments_features].values).reshape((len(self.moments_features), 1, self.win_length))).double()
+        self.labels = torch.tensor(labels).double()
+        self.times = subdf.index.values
+        return i, (self.moments, self.spectro), self.labels
+
+    def all_pred(self, model, threshold=0.5):
+        nbrWindows = nbr_windows(self.all_dataset, self.win_length)
+        pred = pd.DataFrame(-1.0 * np.arange(len(self.all_dataset)), index=self.all_dataset.index.values,
+                            columns=['pred'])
+        print(f"Number of windows = {nbrWindows}.")
+
+        for i in range(nbrWindows):
+            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            moments = self.all_dataset.iloc[i * self.win_length: (i + 1) * self.win_length][self.moments_features]
+            moments = torch.tensor(
+                np.transpose(moments.values).reshape((1, len(self.moments_features), 1, self.win_length))).double().to(
+                device)
+            spectro = self.all_dataset.iloc[i * self.win_length: (i + 1) * self.win_length][self.spectro_features]
+            spectro = torch.tensor(
+                np.transpose(spectro.values).reshape((1, 1, len(self.spectro_features), self.win_length))).double().to(
+                device)
+
+            pred.iloc[i * self.win_length: (i + 1) * self.win_length, -1] = torch.Tensor.cpu(model.forward(
+                (moments, spectro)).flatten()).detach().numpy()
+            if i % (nbrWindows // 10) == 0:
+                print(f"{round(i / nbrWindows * 100, 2)}% of windows predicted.")
+
+        pred['predicted_class'] = pred.pred.values > threshold
+
+        return pred
+
+
+
+class WindowsSpectro2D(Dataset, DataForWindows):
+
+    def __getitem__(self, i):
+        subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.spectro_features + self.label]
+        labels = subdf[self.label].values
+        subdf.drop(self.label, axis=1, inplace=True)
+        self.inputs = torch.tensor(np.transpose(subdf.values).reshape((1, len(self.spectro_features),self.win_length))).double()
         self.labels = torch.tensor(labels).double()
         self.times = subdf.index.values
         return i, self.inputs, self.labels
 
-    def __len__(self):
-        return len(self.dataset) // self.win_length
+    def all_pred(self, model, threshold=0.5):
+        nbrWindows = nbr_windows(self.all_dataset, self.win_length)
+        pred = pd.DataFrame(-1.0 * np.arange(len(self.all_dataset)), index=self.all_dataset.index.values,
+                            columns=['pred'])
+        print(f"Number of windows = {nbrWindows}.")
+
+        for i in range(nbrWindows):
+            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            spectro = self.all_dataset.iloc[i * self.win_length: (i + 1) * self.win_length][self.spectro_features]
+            spectro = torch.tensor(
+                np.transpose(spectro.values).reshape((1, 1, len(self.spectro_features), self.win_length))).double().to(
+                device)
+
+            pred.iloc[i * self.win_length: (i + 1) * self.win_length, -1] = torch.Tensor.cpu(model.forward(
+                spectro).flatten()).detach().numpy()
+            if i % (nbrWindows // 10) == 0:
+                print(f"{round(i / nbrWindows * 100, 2)}% of windows predicted.")
+
+        pred['predicted_class'] = pred.pred.values > threshold
+
+        return pred
+
+
+class WindowsMoments(Dataset, DataForWindows):
+
+    def __getitem__(self, i):
+        subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.moments_features + [self.label]]
+        labels = subdf[self.label].values
+        subdf.drop([self.label], axis=1, inplace=True)
+        self.inputs = torch.tensor(np.transpose(subdf.values).reshape((len(self.moments_features),1,self.win_length))).double()
+        self.labels = torch.tensor(labels).double()
+        self.times = subdf.index.values
+        return i, self.inputs, self.labels
+
+    def all_pred(self, model, threshold=0.5):
+        nbrWindows = nbr_windows(self.all_dataset, self.win_length)
+        pred = pd.DataFrame(-1.0 * np.arange(len(self.all_dataset)), index=self.all_dataset.index.values,
+                            columns=['pred'])
+        print(f"Number of windows = {nbrWindows}.")
+
+        for i in range(nbrWindows):
+            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            moments = self.all_dataset.iloc[i * self.win_length: (i + 1) * self.win_length][self.moments_features]
+            moments = torch.tensor(
+                np.transpose(moments.values).reshape((1, len(self.moments_features), 1, self.win_length))).double().to(
+                device)
+
+            pred.iloc[i * self.win_length: (i + 1) * self.win_length, -1] = torch.Tensor.cpu(model.forward(
+                moments).flatten()).detach().numpy()
+            if i % (nbrWindows // 10) == 0:
+                print(f"{round(i / nbrWindows * 100, 2)}% of windows predicted.")
+
+        pred['predicted_class'] = pred.pred.values > threshold
+
+        return pred
