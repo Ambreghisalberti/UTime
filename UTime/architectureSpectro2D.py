@@ -109,7 +109,7 @@ class UTime(nn.Module, Model):
         if self.n_classes == 1:
             layers.append(nn.Sigmoid())
         else:
-            layers.append(nn.Softmax())
+            layers.append(nn.Softmax(dim=1))
 
         return nn.Sequential(*layers)
 
