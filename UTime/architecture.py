@@ -93,7 +93,7 @@ class UTime(nn.Module, Model):
         for i in range(self.depth - 1):
             if i == 0:
                 layers.append(
-                    nn.Conv2d(1, self.filters[i], kernel_size=(self.kernels[i], self.kernels[i]), padding='same'))
+                    nn.Conv2d(1, self.filters[i], kernel_size=(min(self.kernels[i], self.nb_channels_spectro[-1]), self.kernels[i]), padding='same'))
             else:
                 # print(f'Layer {i}: {self.filters[i-1]} -> {self.filters[i]}, kernels = {self.kernels[i]}')
                 layers.append(nn.Conv2d(self.filters[i - 1], self.filters[i], kernel_size=(
@@ -114,7 +114,7 @@ class UTime(nn.Module, Model):
 
         # Last block without maxpooling
         # print(f'Last layer {i}: {self.filters[-2]} -> {self.filters[-1]}, kernels = {self.kernels[-1]}')
-        layers.append(nn.Conv2d(self.filters[-2], self.filters[-1], kernel_size=(self.kernels[-1], self.kernels[-1]),
+        layers.append(nn.Conv2d(self.filters[-2], self.filters[-1], kernel_size=(min(self.kernels[-1], self.nb_channels_spectro[-1]), self.kernels[-1]),
                                 padding='same'))
         layers.append(BatchNorm2d(num_features=self.filters[-1]))
         layers.append(nn.ReLU(inplace=True))

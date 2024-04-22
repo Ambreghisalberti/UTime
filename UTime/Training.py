@@ -134,9 +134,8 @@ class Training():
 
         t_end = time.time()
         if self.verbose_plot:
-            print(f"Total training done in {t_end - t_begin} seconds and {self.stop_epoch} epochs.")
 
-            plt.figure()
+            plt.clf()
             plt.plot(np.arange(self.current_epoch), torch.tensor(self.training_loss).detach().numpy(),
                      label='Trainset')
             plt.xlabel('Epochs')
@@ -149,3 +148,5 @@ class Training():
             if early_stop:
                 plt.axvline(early_stopping.stop_epoch, linestyle='--', color='r', label='Stopping Checkpoint')
             plt.legend()
+
+            print(f"Total training done in {t_end - t_begin} seconds and {self.stop_epoch} epochs.")
