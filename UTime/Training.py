@@ -7,6 +7,8 @@ import torch.optim as optim
 from .CostFunctions import WeightedMSE, WeightedBCE
 from .EarlyStopping import EarlyStopping
 from torch.nn import MSELoss
+from IPython import display
+
 
 class Training():
 
@@ -89,6 +91,22 @@ class Training():
 
         if self.validation:
             self.val_loss.append(self.model.evaluate(self.dlval, self.val_criterion, mirrored=self.mirrored))
+
+        if self.verbose_plot:
+            plt.clf()
+            plt.plot(np.arange(self.current_epoch), torch.tensor(self.training_loss).detach().numpy(),
+                     label='Trainset')
+            plt.xlabel('Epochs')
+            plt.ylabel('Loss')
+            name = kwargs.get('name', str(datetime.now())[:10])
+            plt.title(f'{name}\nnum_epochs = {self.stop_epoch}.')
+            if self.validation:
+                plt.plot(np.arange(self.current_epoch), torch.tensor(self.val_loss).detach().numpy(),
+                         label='Validation set')
+            plt.legend()
+            display.clear_output(wait=True)
+            display.display(plt.gcf())
+
 
     def fit(self, **kwargs):
         self.current_epoch = 0

@@ -8,7 +8,8 @@ from sklearn.preprocessing import StandardScaler
 
 class DataForWindows(Dataset):
 
-    def __init__(self, all_data, position, omni_data, win_duration, moments_features = [], spectro_features = [], label = ['label'], **kwargs):
+    def __init__(self, all_data, position, omni_data, win_duration, moments_features = [], spectro_features = [],
+                 label = ['label'], **kwargs):
         self.win_length = durationToNbrPts(win_duration, time_resolution(all_data))
         self.moments_features = moments_features
         self.spectro_features = spectro_features
