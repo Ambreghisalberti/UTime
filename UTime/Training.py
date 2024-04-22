@@ -99,7 +99,7 @@ class Training():
             plt.xlabel('Epochs')
             plt.ylabel('Loss')
             name = kwargs.get('name', str(datetime.now())[:10])
-            plt.title(f'{name}\nnum_epochs = {self.stop_epoch}.')
+            plt.title(f'{name}')
             if self.validation:
                 plt.plot(np.arange(self.current_epoch), torch.tensor(self.val_loss).detach().numpy(),
                          label='Validation set')
