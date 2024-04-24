@@ -105,6 +105,9 @@ class Training():
         early_stop = kwargs.get('early_stop', False)
         t_begin = time.time()
 
+        if self.verbose_plot:
+            plt.figure()
+
         if early_stop:
             patience = kwargs.get('patience', 10)
             early_stopping = EarlyStopping(self.model,
@@ -125,11 +128,11 @@ class Training():
         t_end = time.time()
         if self.verbose_plot:
             print(f"Total training done in {t_end - t_begin} seconds and {self.stop_epoch} epochs.")
-
             if early_stop:
                 self.info(early_stopping=early_stopping)
             else:
                 self.info()
+            plt.show()
 
     def info(self, **kwargs):
 
@@ -148,7 +151,6 @@ class Training():
             early_stopping = kwargs['early_stopping']
             plt.axvline(early_stopping.stop_epoch, linestyle='--', color='r', label='Stopping Checkpoint')
             plt.title(f'{self.name}\nnum_epochs = {early_stopping.stop_epoch}.')
-
         plt.legend()
         display.clear_output(wait=True)
         display.display(plt.gcf())
