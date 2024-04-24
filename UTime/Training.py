@@ -152,6 +152,6 @@ class Training():
             plt.axvline(early_stopping.stop_epoch, linestyle='--', color='r', label='Stopping Checkpoint')
             plt.title(f'{self.name}\nnum_epochs = {early_stopping.stop_epoch}.')
         plt.legend()
-        #display.clear_output(wait=True)
-        #display.display(plt.gcf())
+        display.clear_output(wait=True)
+        display.display(plt.gcf())
 
