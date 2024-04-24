@@ -9,6 +9,42 @@ import copy
 from .Training import Training
 
 
+def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
+    architecture = architecture.double()
+    precisions, recalls, F1_scores, TPRs, FPRs, AUCs, models = [], [], [], [], [], [], []
+
+    for iter in range(nb_iter):
+        print(f'\nIteration {iter} :')
+        model = copy.deepcopy(architecture)
+
+        if "pretrained" in kwargs:
+            model = initialize_pretrained_model(model, kwargs["pretrained"])
+
+        dl_train, dl_test = make_dataloaders(windows, test_ratio=kwargs.get('test_ratio', 0.2))
+
+        train_loss, test_loss = get_loss_functions(loss_function, dl_train, dl_test)
+        training = Training(model, 2000, dl_train, dltest=dl_test, dlval=dl_test, validation=True,
+                            # To make it more general, get those parameters from kwargs?
+                            train_criterion=train_loss, val_criterion=test_loss,
+                            learning_rate=0.001, verbose_plot=True if iter == 0 else False, mirrored=True)
+
+        '''training = Training(model, 2000, dl_train, dltest = dl_test, dlval=dl_test, validation=True,     # To make it more general, get those parameters from kwargs?
+                                       train_criterion = train_loss,val_criterion = test_loss,
+                                       learning_rate=0.001, verbose_plot = True, mirrored = True)'''
+        name = loss_function + f', lr = {training.lr}, n={training.current_epoch}, early_stopping, n°{iter}'  # To make it more general, get early stopping from kwargs?
+        training.fit(verbose=False, name=name, early_stop=True, patience=40)
+        precisions, recalls, F1_scores, TPRs, FPRs, AUCs = add_scores(model, dl_test, precisions, recalls, F1_scores,
+                                                                      TPRs, FPRs, AUCs)
+        models.append(training.model.to('cpu'))
+
+        del model, training
+
+    if kwargs.get('verbose', True):
+        plot_mean_ROC(FPRs, TPRs, AUCs)
+
+    return precisions, recalls, F1_scores, TPRs, FPRs, AUCs, models
+
+
 def get_loss_functions(loss_function, dl_train, dl_test):
     if loss_function == 'CEL':
         train_loss, test_loss = CrossEntropyLoss(reduction='mean'), CrossEntropyLoss(reduction='mean')
@@ -65,35 +101,27 @@ def plot_mean_ROC(FPRs, TPRs, AUCs):
     plt.title(f"ROC for the cross-validation : mean AUC = {round(np.mean(np.array(AUCs)), 2)}")
     plt.show()
 
+def initialize_pretrained_model(new_model, pretrained_model):
+    weights = pretrained_model.state_dict()
+    weights = {key: weights[key] for key in weights.keys() if key.startswith('encoder') or key.startswith('decoder')}
+    model_dict = new_model.state_dict()
+    model_dict.update(weights)
+    new_model.load_state_dict(model_dict)
+    return new_model
 
-def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
-    architecture = architecture.double()
-    precisions, recalls, F1_scores, TPRs, FPRs, AUCs, models = [], [], [], [], [], [], []
 
-    for iter in range(nb_iter):
-        print(f'\nIteration {iter} :')
-        model = copy.deepcopy(architecture)
+def write_scores(text, scores, name, precisions, recalls, F1_scores, AUCs):
+    mean_precision, std_precision = np.mean(np.array(precisions)), np.std(np.array(precisions))
+    mean_recalls, std_recalls = np.mean(np.array(recalls)), np.std(np.array(recalls))
+    mean_F1, std_F1 = np.mean(np.array(F1_scores)), np.std(np.array(F1_scores))
+    mean_AUC, std_AUC = np.mean(np.array(AUCs)), np.std(np.array(AUCs))
 
-        dl_train, dl_test = make_dataloaders(windows, test_ratio=kwargs.get('test_ratio', 0.2))
+    scores.loc[name, :] = [mean_precision, std_precision, mean_recalls, std_recalls, mean_F1, std_F1, mean_AUC, std_AUC]
 
-        train_loss, test_loss = get_loss_functions(loss_function, dl_train, dl_test)
-        training = Training(model, 2000, dl_train, dltest=dl_test, dlval=dl_test, validation=True,
-                            # To make it more general, get those parameters from kwargs?
-                            train_criterion=train_loss, val_criterion=test_loss,
-                            learning_rate=0.001, verbose_plot=True if iter == 0 else False, mirrored=True)
+    text += f'Precision : mean = {round(mean_precision * 100, 2)}%, std = {round(100 * std_precision, 2)}%.'
+    text += f'Recall : mean = {round(100 * mean_recalls, 2)}%, std = {round(100 * std_recalls, 2)}%.'
+    text += f'F1 : mean = {round(mean_F1, 2)}, std = {round(std_F1, 2)}.'
+    text += f'AUC : mean = {round(mean_AUC, 2)}, std = {round(std_AUC, 2)}.'
+    text += '\n\n'
 
-        '''training = Training(model, 2000, dl_train, dltest = dl_test, dlval=dl_test, validation=True,     # To make it more general, get those parameters from kwargs?
-                                       train_criterion = train_loss,val_criterion = test_loss,
-                                       learning_rate=0.001, verbose_plot = True, mirrored = True)'''
-        name = loss_function + f', lr = {training.lr}, n={training.current_epoch}, early_stopping, n°{iter}'  # To make it more general, get early stopping from kwargs?
-        training.fit(verbose=False, name=name, early_stop=True, patience=40)
-        precisions, recalls, F1_scores, TPRs, FPRs, AUCs = add_scores(model, dl_test, precisions, recalls, F1_scores,
-                                                                      TPRs, FPRs, AUCs)
-        models.append(training.model.to('cpu'))
-
-        del model, training
-
-    if kwargs.get('verbose', True):
-        plot_mean_ROC(FPRs, TPRs, AUCs)
-
-    return precisions, recalls, F1_scores, TPRs, FPRs, AUCs, models
+    return text, scores
