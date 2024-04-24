@@ -37,6 +37,9 @@ class Training():
             self.val_criterion = kwargs.get('val_criterion', MSELoss())
         self.test_criterion = kwargs.get('test_criterion', MSELoss())
 
+        self.name = kwargs.get('name', str(datetime.now())[:10])
+
+
     def backward_propagation(self, batch, labels):
         if isinstance(batch, tuple):
             a,b = batch
@@ -93,19 +96,7 @@ class Training():
             self.val_loss.append(self.model.evaluate(self.dlval, self.val_criterion, mirrored=self.mirrored))
 
         if self.verbose_plot:
-            plt.clf()
-            plt.plot(np.arange(self.current_epoch), torch.tensor(self.training_loss).detach().numpy(),
-                     label='Trainset')
-            plt.xlabel('Epochs')
-            plt.ylabel('Loss')
-            name = kwargs.get('name', str(datetime.now())[:10])
-            plt.title(f'{name}')
-            if self.validation:
-                plt.plot(np.arange(self.current_epoch), torch.tensor(self.val_loss).detach().numpy(),
-                         label='Validation set')
-            plt.legend()
-            display.clear_output(wait=True)
-            display.display(plt.gcf())
+            self.info()
 
 
     def fit(self, **kwargs):
@@ -115,11 +106,10 @@ class Training():
         t_begin = time.time()
 
         if early_stop:
-            name = kwargs.get('name', str(datetime.now())[:10])
             patience = kwargs.get('patience', 10)
             early_stopping = EarlyStopping(self.model,
                                            patience=patience,
-                                           path=f"/home/ghisalberti/BL_encoder_decoder/checkpoints_models/{name}.pt",
+                                           path=f"/home/ghisalberti/BL_encoder_decoder/checkpoints_models/{self.name}.pt",
                                            verbose=self.verbose)
 
             while (self.current_epoch < self.epochs) & (early_stopping.early_stop == False):
@@ -134,19 +124,31 @@ class Training():
 
         t_end = time.time()
         if self.verbose_plot:
-
-            plt.clf()
-            plt.plot(np.arange(self.current_epoch), torch.tensor(self.training_loss).detach().numpy(),
-                     label='Trainset')
-            plt.xlabel('Epochs')
-            plt.ylabel('Loss')
-            name = kwargs.get('name', str(datetime.now())[:10])
-            plt.title(f'{name}\nnum_epochs = {self.stop_epoch}.')
-            if self.validation:
-                plt.plot(np.arange(self.current_epoch), torch.tensor(self.val_loss).detach().numpy(),
-                         label='Validation set')
-            if early_stop:
-                plt.axvline(early_stopping.stop_epoch, linestyle='--', color='r', label='Stopping Checkpoint')
-            plt.legend()
-
             print(f"Total training done in {t_end - t_begin} seconds and {self.stop_epoch} epochs.")
+
+            if early_stop:
+                self.info(early_stopping=early_stopping)
+            else:
+                self.info()
+
+    def info(self, **kwargs):
+
+        plt.clf()
+        plt.plot(np.arange(self.current_epoch), torch.tensor(self.training_loss).detach().numpy(),
+                 label='Trainset')
+        plt.xlabel('Epochs')
+        plt.ylabel('Loss')
+        plt.title(f'{self.name}\nnum_epochs = {self.stop_epoch}.')
+
+        if self.validation:
+            plt.plot(np.arange(self.current_epoch), torch.tensor(self.val_loss).detach().numpy(),
+                     label='Validation set')
+
+        if 'early_stopping' in kwargs:
+            early_stopping = kwargs['early_stopping']
+            plt.axvline(early_stopping.stop_epoch, linestyle='--', color='r', label='Stopping Checkpoint')
+
+        plt.legend()
+        display.clear_output(wait=True)
+        display.display(plt.gcf())
+
