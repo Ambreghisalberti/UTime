@@ -95,8 +95,8 @@ class Training():
         if self.validation:
             self.val_loss.append(self.model.evaluate(self.dlval, self.val_criterion, mirrored=self.mirrored))
 
-        if self.verbose_plot:
-            self.info()
+        #if self.verbose_plot:
+        #    self.info()
 
 
     def fit(self, **kwargs):
