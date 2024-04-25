@@ -149,7 +149,7 @@ class Training():
                  label='Trainset')
         ax.set_xlabel('Epochs')
         ax.set_ylabel('Loss')
-        fig.set_title(f'{self.name}\nnum_epochs = {self.current_epoch}.')
+        fig.title.set_text(f'{self.name}\nnum_epochs = {self.current_epoch}.')
 
         if self.validation:
             ax.plot(np.arange(self.current_epoch), torch.tensor(self.val_loss).detach().numpy(),
@@ -158,7 +158,7 @@ class Training():
         if 'early_stopping' in kwargs:
             early_stopping = kwargs['early_stopping']
             ax.axvline(early_stopping.stop_epoch, linestyle='--', color='r', label='Stopping Checkpoint')
-            fig.set_title(f'{self.name}\nnum_epochs = {early_stopping.stop_epoch}.')
+            fig.title.set_text(f'{self.name}\nnum_epochs = {early_stopping.stop_epoch}.')
         plt.legend()
         display.clear_output(wait=True)
         display.display(plt.gcf())
