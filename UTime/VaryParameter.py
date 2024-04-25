@@ -46,7 +46,7 @@ def write_file(text, path):
     f.close()
 
 
-def vary(windows, **kwargs):
+def vary_parameter(windows, **kwargs):
     plt.ion()
     depth = kwargs.get('depth', 5)
     kernel_size = kwargs.get('kernel_size', 5)
@@ -77,10 +77,11 @@ def vary(windows, **kwargs):
         architecture = UTime(1, windows.win_length, len(windows.moments_features),
                              len(windows.spectro_features), d, nf, ks, 2)
         precisions, recalls, F1_scores, TPRs, FPRs, AUCs, models = cross_validation(architecture, windows,
-                                                                                    kwargs.get('nb_iter', 5), lf,
+                                                                                    kwargs.pop('nb_iter', 5), lf,
                                                                                     test_ratio=tp, fig=fig,
                                                                                     ax=axes[i, :],
-                                                                                    name=f'{variable} = {value}')
+                                                                                    name=f'{variable} = {value}',
+                                                                                    **kwargs)
         pd.to_pickle(
             {'models': models, 'precisions': precisions, 'recalls': recalls, 'F1_scores': F1_scores, 'AUCs': AUCs,
              'TPRs': TPRs, 'FPRs': FPRs},
