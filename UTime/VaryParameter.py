@@ -76,8 +76,9 @@ def vary_parameter(windows, **kwargs):
         name = f'depth={d}_filters={nf}_kernel={ks}_{lf}_testsize={test_proportion}' + description
         architecture = UTime(1, windows.win_length, len(windows.moments_features),
                              len(windows.spectro_features), d, nf, ks, 2)
+        nb_iter = kwargs.pop('nb_iter', 5)
         precisions, recalls, F1_scores, TPRs, FPRs, AUCs, models = cross_validation(architecture, windows,
-                                                                                    kwargs.pop('nb_iter', 5), lf,
+                                                                                    nb_iter, lf,
                                                                                     test_ratio=tp, fig=fig,
                                                                                     ax=axes[i, :],
                                                                                     name=f'{variable} = {value}',
