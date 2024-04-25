@@ -10,6 +10,12 @@ from .Training import Training
 
 
 def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
+    if 'fig' in kwargs and 'ax' in kwargs:
+        fig = kwargs['fig']
+        axes = kwargs['ax']
+    else:
+        fig, axes = plt.subplots(nrows = 1, ncols=2, figsize=(10,5))
+
     architecture = architecture.double()
     precisions, recalls, F1_scores, TPRs, FPRs, AUCs, models = [], [], [], [], [], [], []
 
@@ -32,7 +38,8 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
                                        train_criterion = train_loss,val_criterion = test_loss,
                                        learning_rate=0.001, verbose_plot = True, mirrored = True)'''
         name = loss_function + f', lr = {training.lr}, n={training.current_epoch}, early_stopping, n°{iter}'  # To make it more general, get early stopping from kwargs?
-        training.fit(verbose=False, name=name, early_stop=kwargs.get('early_stop',True), patience=kwargs.get('patience',40))
+        training.fit(verbose=False, name=name, early_stop=kwargs.get('early_stop',True), patience=kwargs.get('patience',40),
+                     fig=fig, ax=axes[0])
         precisions, recalls, F1_scores, TPRs, FPRs, AUCs = add_scores(model, dl_test, precisions, recalls, F1_scores,
                                                                       TPRs, FPRs, AUCs)
         models.append(training.model.to('cpu'))
@@ -40,7 +47,7 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
         del model, training
 
     if kwargs.get('verbose', True):
-        plot_mean_ROC(FPRs, TPRs, AUCs)
+        plot_mean_ROC(FPRs, TPRs, AUCs, fig=fig, ax=axes[1])
 
     return precisions, recalls, F1_scores, TPRs, FPRs, AUCs, models
 
@@ -82,24 +89,28 @@ def add_scores(model, dl, precisions, recalls, F1_scores, TPRs, FPRs, AUCs):
     return precisions, recalls, F1_scores, TPRs, FPRs, AUCs
 
 
-def plot_mean_ROC(FPRs, TPRs, AUCs):
+def plot_mean_ROC(FPRs, TPRs, AUCs, **kwargs):
     FPRs, TPRs = np.array(FPRs), np.array(TPRs)
-    plt.figure()
-    plt.plot(np.linspace(0, 1, 100), np.linspace(0, 1, 100), linestyle='--', color='grey', alpha=0.5)
+    if 'fig' in kwargs and 'ax' in kwargs:
+        fig = kwargs['fig']
+        ax = kwargs['ax']
+    else:
+        fig, ax = plt.subplots(nrows=1, ncols=1)
+    ax.plot(np.linspace(0, 1, 100), np.linspace(0, 1, 100), linestyle='--', color='grey', alpha=0.5)
     reference_FPR = np.linspace(0, 1, 1000)
     interpolated_TPRs = TPRs.copy()
     for i in range(len(TPRs)):
         interpolated_TPRs[i] = scipy.interpolate.interp1d(FPRs[i], TPRs[i])(reference_FPR)
-        plt.plot(FPRs[i], TPRs[i], color='blue', linewidth=0.5)
+        ax.plot(FPRs[i], TPRs[i], color='blue', linewidth=0.5)
 
-    plt.fill_between(reference_FPR, np.mean(interpolated_TPRs, axis=0) - np.std(interpolated_TPRs, axis=0),
+    ax.fill_between(reference_FPR, np.mean(interpolated_TPRs, axis=0) - np.std(interpolated_TPRs, axis=0),
                      np.mean(interpolated_TPRs, axis=0) + np.std(interpolated_TPRs, axis=0), alpha=0.5)
-    plt.plot(reference_FPR, np.mean(interpolated_TPRs, axis=0), linewidth=2, color='red')
+    ax.plot(reference_FPR, np.mean(interpolated_TPRs, axis=0), linewidth=2, color='red')
 
-    plt.xlabel("False Positive Rate")
-    plt.ylabel("True Positive Rate")
-    plt.title(f"ROC for the cross-validation : mean AUC = {round(np.mean(np.array(AUCs)), 2)}")
-    plt.show()
+    ax.set_xlabel("False Positive Rate")
+    ax.set_ylabel("True Positive Rate")
+    fig.title(f"ROC for the cross-validation : mean AUC = {round(np.mean(np.array(AUCs)), 2)}")
+    #plt.show()
 
 def initialize_pretrained_model(new_model, pretrained_model):
     weights = pretrained_model.state_dict()

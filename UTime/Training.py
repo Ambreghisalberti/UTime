@@ -106,7 +106,11 @@ class Training():
         t_begin = time.time()
 
         if self.verbose_plot:
-            plt.figure()
+            if 'fig' in kwargs and 'ax' in kwargs:
+                fig = kwargs['fig']
+                ax = kwargs['ax']
+            else:
+                fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(5,5))
 
         if early_stop:
             patience = kwargs.get('patience', 10)
@@ -129,28 +133,32 @@ class Training():
         if self.verbose_plot:
             print(f"Total training done in {t_end - t_begin} seconds and {self.stop_epoch} epochs.")
             if early_stop:
-                self.info(early_stopping=early_stopping)
+                self.info(early_stopping=early_stopping, fig=fig, ax=ax)
             else:
-                self.info()
+                self.info(fig=fig, ax=ax)
             plt.show()
 
     def info(self, **kwargs):
+        if 'fig' in kwargs and 'ax' in kwargs:
+            fig,ax = kwargs['fig'], kwargs['ax']
+        else:
+            fig,ax = plt.subplots(ncols=1, nrows=1, figsize=(5,5))
 
-        plt.clf()
-        plt.plot(np.arange(self.current_epoch), torch.tensor(self.training_loss).detach().numpy(),
+        fig.clf()
+        ax.plot(np.arange(self.current_epoch), torch.tensor(self.training_loss).detach().numpy(),
                  label='Trainset')
-        plt.xlabel('Epochs')
-        plt.ylabel('Loss')
-        plt.title(f'{self.name}\nnum_epochs = {self.current_epoch}.')
+        ax.set_xlabel('Epochs')
+        ax.set_ylabel('Loss')
+        fig.set_title(f'{self.name}\nnum_epochs = {self.current_epoch}.')
 
         if self.validation:
-            plt.plot(np.arange(self.current_epoch), torch.tensor(self.val_loss).detach().numpy(),
+            ax.plot(np.arange(self.current_epoch), torch.tensor(self.val_loss).detach().numpy(),
                      label='Validation set')
 
         if 'early_stopping' in kwargs:
             early_stopping = kwargs['early_stopping']
-            plt.axvline(early_stopping.stop_epoch, linestyle='--', color='r', label='Stopping Checkpoint')
-            plt.title(f'{self.name}\nnum_epochs = {early_stopping.stop_epoch}.')
+            ax.axvline(early_stopping.stop_epoch, linestyle='--', color='r', label='Stopping Checkpoint')
+            fig.set_title(f'{self.name}\nnum_epochs = {early_stopping.stop_epoch}.')
         plt.legend()
         display.clear_output(wait=True)
         display.display(plt.gcf())
