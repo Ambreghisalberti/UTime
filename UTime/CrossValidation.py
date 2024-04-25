@@ -7,6 +7,7 @@ import numpy as np
 import scipy
 import copy
 from .Training import Training
+from IPython import display
 
 
 def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
@@ -14,10 +15,10 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
         fig = kwargs['fig']
         axes = kwargs['ax']
     else:
-        fig, axes = plt.subplots(nrows = 1, ncols=2, figsize=(10,5))
+        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(6, 3))
 
     architecture = architecture.double()
-    precisions, recalls, F1_scores, TPRs, FPRs, AUCs, models = [], [], [], [], [], [], []
+    precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models = [], [], [], [], [], [], []
 
     for iter in range(nb_iter):
         print(f'\nIteration {iter} :')
@@ -32,24 +33,26 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
         training = Training(model, 2000, dl_train, dltest=dl_test, dlval=dl_test, validation=True,
                             # To make it more general, get those parameters from kwargs?
                             train_criterion=train_loss, val_criterion=test_loss,
-                            learning_rate=0.001, verbose_plot=True if iter == 0 else False, mirrored=True)
+                            learning_rate=0.001, verbose_plot=True if iter == 0 else False, mirrored=True,
+                            **kwargs)
 
         '''training = Training(model, 2000, dl_train, dltest = dl_test, dlval=dl_test, validation=True,     # To make it more general, get those parameters from kwargs?
                                        train_criterion = train_loss,val_criterion = test_loss,
                                        learning_rate=0.001, verbose_plot = True, mirrored = True)'''
-        name = loss_function + f', lr = {training.lr}, n={training.current_epoch}, early_stopping, n°{iter}'  # To make it more general, get early stopping from kwargs?
-        training.fit(verbose=False, name=name, early_stop=kwargs.get('early_stop',True), patience=kwargs.get('patience',40),
+        training.fit(verbose=False, early_stop=kwargs.get('early_stop', True), patience=kwargs.get('patience', 40),
                      fig=fig, ax=axes[0])
-        precisions, recalls, F1_scores, TPRs, FPRs, AUCs = add_scores(model, dl_test, precisions, recalls, F1_scores,
-                                                                      TPRs, FPRs, AUCs)
+        precisions, recalls, F1_scores, FPRs, TPRs, AUCs = add_scores(model, dl_test, precisions, recalls, F1_scores,
+                                                                      FPRs, TPRs, AUCs)
         models.append(training.model.to('cpu'))
 
         del model, training
 
     if kwargs.get('verbose', True):
         plot_mean_ROC(FPRs, TPRs, AUCs, fig=fig, ax=axes[1])
+    plt.tight_layout()
+    plt.draw()
 
-    return precisions, recalls, F1_scores, TPRs, FPRs, AUCs, models
+    return precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models
 
 
 def get_loss_functions(loss_function, dl_train, dl_test):
@@ -74,9 +77,9 @@ def make_dataloaders(windows, test_ratio=0.2):
     return dl_train, dl_test
 
 
-def add_scores(model, dl, precisions, recalls, F1_scores, TPRs, FPRs, AUCs):
+def add_scores(model, dl, precisions, recalls, F1_scores, FPRs, TPRs, AUCs):
     p, r, F1 = model.scores(dl=dl)
-    TPR, FPR = model.ROC(dl=dl, verbose=False)
+    FPR, TPR = model.ROC(dl=dl, verbose=False)
     AUC = auc(FPR, TPR)
 
     precisions.append(p)
@@ -86,7 +89,7 @@ def add_scores(model, dl, precisions, recalls, F1_scores, TPRs, FPRs, AUCs):
     FPRs.append(FPR)
     AUCs.append(AUC)
 
-    return precisions, recalls, F1_scores, TPRs, FPRs, AUCs
+    return precisions, recalls, F1_scores, FPRs, TPRs, AUCs
 
 
 def plot_mean_ROC(FPRs, TPRs, AUCs, **kwargs):
@@ -96,6 +99,7 @@ def plot_mean_ROC(FPRs, TPRs, AUCs, **kwargs):
         ax = kwargs['ax']
     else:
         fig, ax = plt.subplots(nrows=1, ncols=1)
+
     ax.plot(np.linspace(0, 1, 100), np.linspace(0, 1, 100), linestyle='--', color='grey', alpha=0.5)
     reference_FPR = np.linspace(0, 1, 1000)
     interpolated_TPRs = TPRs.copy()
@@ -104,13 +108,15 @@ def plot_mean_ROC(FPRs, TPRs, AUCs, **kwargs):
         ax.plot(FPRs[i], TPRs[i], color='blue', linewidth=0.5)
 
     ax.fill_between(reference_FPR, np.mean(interpolated_TPRs, axis=0) - np.std(interpolated_TPRs, axis=0),
-                     np.mean(interpolated_TPRs, axis=0) + np.std(interpolated_TPRs, axis=0), alpha=0.5)
+                    np.mean(interpolated_TPRs, axis=0) + np.std(interpolated_TPRs, axis=0), alpha=0.5)
     ax.plot(reference_FPR, np.mean(interpolated_TPRs, axis=0), linewidth=2, color='red')
 
     ax.set_xlabel("False Positive Rate")
     ax.set_ylabel("True Positive Rate")
-    ax.title.set_text(f"ROC for the cross-validation : mean AUC = {round(np.mean(np.array(AUCs)), 2)}")
-    #plt.show()
+    ax.title.set_text(f"ROC for the cross-validation\nmean AUC = {round(np.mean(np.array(AUCs)), 2)}")
+    display.clear_output(wait=True)
+    display.display(plt.gcf())
+
 
 def initialize_pretrained_model(new_model, pretrained_model):
     weights = pretrained_model.state_dict()
@@ -121,18 +127,20 @@ def initialize_pretrained_model(new_model, pretrained_model):
     return new_model
 
 
-def write_scores(text, scores, name, precisions, recalls, F1_scores, AUCs):
+def write_scores(text, scores, variable, value, precisions, recalls, F1_scores, AUCs):
     mean_precision, std_precision = np.mean(np.array(precisions)), np.std(np.array(precisions))
     mean_recalls, std_recalls = np.mean(np.array(recalls)), np.std(np.array(recalls))
     mean_F1, std_F1 = np.mean(np.array(F1_scores)), np.std(np.array(F1_scores))
     mean_AUC, std_AUC = np.mean(np.array(AUCs)), np.std(np.array(AUCs))
 
-    scores.loc[name, :] = [mean_precision, std_precision, mean_recalls, std_recalls, mean_F1, std_F1, mean_AUC, std_AUC]
+    scores.loc[f'{variable}={value}', :] = [mean_precision, std_precision, mean_recalls, std_recalls, mean_F1, std_F1,
+                                            mean_AUC, std_AUC]
 
-    text += f'Precision : mean = {round(mean_precision * 100, 2)}%, std = {round(100 * std_precision, 2)}%.'
-    text += f'Recall : mean = {round(100 * mean_recalls, 2)}%, std = {round(100 * std_recalls, 2)}%.'
-    text += f'F1 : mean = {round(mean_F1, 2)}, std = {round(std_F1, 2)}.'
-    text += f'AUC : mean = {round(mean_AUC, 2)}, std = {round(std_AUC, 2)}.'
-    text += '\n\n'
+    text += f'For {variable} = {value}:\n\n'
+    text += f'Precision : mean = {round(mean_precision * 100, 2)}%, std = {round(100 * std_precision, 2)}%.\n'
+    text += f'Recall : mean = {round(100 * mean_recalls, 2)}%, std = {round(100 * std_recalls, 2)}%.\n'
+    text += f'F1 : mean = {round(mean_F1, 2)}, std = {round(std_F1, 2)}.\n'
+    text += f'AUC : mean = {round(mean_AUC, 2)}, std = {round(std_AUC, 2)}.\n'
+    text += '\n'
 
     return text, scores

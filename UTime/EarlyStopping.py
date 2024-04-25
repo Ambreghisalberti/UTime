@@ -69,6 +69,7 @@ class EarlyStopping():
         if self.verbose:
             print("Early stopping at epoch " + str(self.stop_epoch))
 
+'''
     def info(self, name, dt):
         print("Total training done in " + str(dt) + ' seconds and ' + str(self.stop_epoch) + ' epochs.')
 
@@ -85,4 +86,4 @@ class EarlyStopping():
         plt.legend()
         plt.savefig("models_regions/figures/CNN_" + name + ".png")
 
-
+'''

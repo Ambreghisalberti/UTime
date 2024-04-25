@@ -90,13 +90,15 @@ class Training():
         if verbose & (self.current_epoch % 10 == 0):
             print(
                 f'Epoch [{self.current_epoch}/{self.epochs}], Loss: {self.training_loss[-1]:.4f}, took '
-                f'{time2_seconds - time1_seconds} seconds')
+                f'{round(time2_seconds - time1_seconds, 2)} seconds')
 
         if self.validation:
             self.val_loss.append(self.model.evaluate(self.dlval, self.val_criterion, mirrored=self.mirrored))
 
-        #if self.verbose_plot:
-        #    self.info()
+        if self.verbose_plot:
+            fig, ax = kwargs['fig'], kwargs['ax']
+            self.info(fig=fig, ax=ax)
+
 
 
     def fit(self, **kwargs):
@@ -110,7 +112,7 @@ class Training():
                 fig = kwargs['fig']
                 ax = kwargs['ax']
             else:
-                fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(5,5))
+                fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(3,3))
 
         if early_stop:
             patience = kwargs.get('patience', 10)
@@ -133,33 +135,35 @@ class Training():
         if self.verbose_plot:
             print(f"Total training done in {t_end - t_begin} seconds and {self.stop_epoch} epochs.")
             if early_stop:
-                self.info(early_stopping=early_stopping, fig=fig, ax=ax)
+                self.info(early_stopping=early_stopping, fig=fig, ax=ax, label=True)
             else:
-                self.info(fig=fig, ax=ax)
-            plt.show()
+                self.info(fig=fig, ax=ax, label=True)
+
 
     def info(self, **kwargs):
         if 'fig' in kwargs and 'ax' in kwargs:
             fig,ax = kwargs['fig'], kwargs['ax']
         else:
-            fig,ax = plt.subplots(ncols=1, nrows=1, figsize=(5,5))
+            fig,ax = plt.subplots(ncols=1, nrows=1, figsize=(3,3))
 
-        #plt.cla()
-        ax.plot(np.arange(self.current_epoch), torch.tensor(self.training_loss).detach().numpy(),
-                 label='Trainset')
+        plt.cla()
+        label = kwargs.get('label', False)
+        ax.plot(np.arange(self.current_epoch), torch.tensor(self.training_loss).detach().numpy(), color='blue',
+                 label='Trainset' if label else '_nolegend_')
         ax.set_xlabel('Epochs')
         ax.set_ylabel('Loss')
         ax.title.set_text(f'{self.name}\nnum_epochs = {self.current_epoch}.')
 
         if self.validation:
-            ax.plot(np.arange(self.current_epoch), torch.tensor(self.val_loss).detach().numpy(),
-                     label='Validation set')
+            ax.plot(np.arange(self.current_epoch), torch.tensor(self.val_loss).detach().numpy(), color='orange',
+                     label='Validation set' if label else '_nolegend_')
 
         if 'early_stopping' in kwargs:
             early_stopping = kwargs['early_stopping']
-            ax.axvline(early_stopping.stop_epoch, linestyle='--', color='r', label='Stopping Checkpoint')
+            ax.axvline(early_stopping.stop_epoch-1, linestyle='--', color='r', label='Stopping Checkpoint')
             ax.title.set_text(f'{self.name}\nnum_epochs = {early_stopping.stop_epoch}.')
-        plt.legend()
-        #display.clear_output(wait=True)
-        #display.display(plt.gcf())
-        #display.display(fig)
+        ax.legend()
+        plt.tight_layout()
+        plt.draw()
+        display.clear_output(wait=True)
+        display.display(plt.gcf())
