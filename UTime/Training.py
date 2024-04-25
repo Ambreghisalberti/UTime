@@ -144,7 +144,7 @@ class Training():
         else:
             fig,ax = plt.subplots(ncols=1, nrows=1, figsize=(5,5))
 
-        fig.clf()
+        plt.cla()
         ax.plot(np.arange(self.current_epoch), torch.tensor(self.training_loss).detach().numpy(),
                  label='Trainset')
         ax.set_xlabel('Epochs')
@@ -160,6 +160,6 @@ class Training():
             ax.axvline(early_stopping.stop_epoch, linestyle='--', color='r', label='Stopping Checkpoint')
             ax.title.set_text(f'{self.name}\nnum_epochs = {early_stopping.stop_epoch}.')
         plt.legend()
-        display.clear_output(wait=True)
-        display.display(plt.gcf())
-
+        #display.clear_output(wait=True)
+        #display.display(plt.gcf())
+        display.display(fig)
