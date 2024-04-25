@@ -48,7 +48,7 @@ def write_file(text, path):
 
 def vary_parameter(windows, **kwargs):
     plt.ion()
-    depth = kwargs.get('depth', 5)
+    depth = kwargs.get('depth', 6)
     kernel_size = kwargs.get('kernel_size', 5)
     nb_filters = kwargs.get('nb_filters', 16)
     test_proportion = kwargs.get('test_proportion', 0.2)
