@@ -32,7 +32,7 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
                                        train_criterion = train_loss,val_criterion = test_loss,
                                        learning_rate=0.001, verbose_plot = True, mirrored = True)'''
         name = loss_function + f', lr = {training.lr}, n={training.current_epoch}, early_stopping, n°{iter}'  # To make it more general, get early stopping from kwargs?
-        training.fit(verbose=False, name=name, early_stop=True, patience=40)
+        training.fit(verbose=False, name=name, early_stop=kwargs.get('early_stop',True), patience=kwargs.get('patience',40))
         precisions, recalls, F1_scores, TPRs, FPRs, AUCs = add_scores(model, dl_test, precisions, recalls, F1_scores,
                                                                       TPRs, FPRs, AUCs)
         models.append(training.model.to('cpu'))
