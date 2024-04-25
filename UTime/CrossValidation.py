@@ -109,7 +109,7 @@ def plot_mean_ROC(FPRs, TPRs, AUCs, **kwargs):
 
     ax.set_xlabel("False Positive Rate")
     ax.set_ylabel("True Positive Rate")
-    fig.title(f"ROC for the cross-validation : mean AUC = {round(np.mean(np.array(AUCs)), 2)}")
+    ax.title.set_text(f"ROC for the cross-validation : mean AUC = {round(np.mean(np.array(AUCs)), 2)}")
     #plt.show()
 
 def initialize_pretrained_model(new_model, pretrained_model):
