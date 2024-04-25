@@ -144,7 +144,7 @@ class Training():
         else:
             fig,ax = plt.subplots(ncols=1, nrows=1, figsize=(5,5))
 
-        plt.cla()
+        #plt.cla()
         ax.plot(np.arange(self.current_epoch), torch.tensor(self.training_loss).detach().numpy(),
                  label='Trainset')
         ax.set_xlabel('Epochs')
@@ -162,4 +162,4 @@ class Training():
         plt.legend()
         #display.clear_output(wait=True)
         #display.display(plt.gcf())
-        display.display(fig)
+        #display.display(fig)
