@@ -114,7 +114,7 @@ def compare_scores(scores):
 
     plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
     labels = np.array(scores.index.values)
-    plt.xticks(ticks=np.arange(len(scores)), labels=labels)
+    plt.xticks(ticks=np.arange(len(scores)), labels=labels, rotation = 45)
     plt.ylabel("Scores, in %")
 
     variable = labels[0].split('=')[0]
