@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from .architecture import UTime
 from .CrossValidation import cross_validation, write_scores
+import numpy as np
 
 
 # Cannot work for window_size yet
@@ -100,3 +101,30 @@ def vary_parameter(windows, **kwargs):
     plt.close()
 
     return scores
+
+
+def compare_scores(scores):
+    plt.figure()
+    plt.errorbar(np.arange(len(scores)) - 0.1, scores.mean_precision.values,
+                 yerr=scores.std_precision.values, fmt="o", label='Precision')
+    plt.errorbar(np.arange(len(scores)), scores.mean_recall.values, yerr=scores.std_recall.values,
+                 fmt="o", label='Recall')
+    plt.errorbar(np.arange(len(scores)) + 0.1, scores.mean_AUC.values, yerr=scores.std_AUC.values,
+                 fmt="o", label='AUC')
+
+    plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
+    labels = np.array(scores.index.values)
+    plt.xticks(ticks=np.arange(len(scores)), labels=labels)
+    plt.ylabel("Scores, in %")
+
+    variable = labels[0].split('=')[0]
+    plt.xlabel(variable)
+    plt.title(f"Effect of {variable} on scores")
+
+    '''
+    for i in range(len(scores)):
+        plt.axhline(scores.mean_precision.values[i], alpha=0.2, linestyle='--', color='b')
+        plt.axhline(scores.mean_recall.values[i], alpha=0.4, linestyle='--', color='orange')
+    '''
+    plt.show()
+    plt.savefig(f"/home/ghisalberti/BL_encoder_decoder/model/diagnostics/{variable}_effect_on_scores.png")
