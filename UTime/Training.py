@@ -122,7 +122,7 @@ class Training():
                                            verbose=self.verbose)
 
             while (self.current_epoch < self.epochs) & (early_stopping.early_stop == False):
-                self.epoch(self.dltrain, **kwargs)
+                self.epoch(self.dltrain, fig=fig, ax=ax, **kwargs)
                 early_stopping(self.val_loss[-1], self.model)
             self.stop_epoch = early_stopping.stop_epoch
 
