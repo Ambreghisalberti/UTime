@@ -52,6 +52,8 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
     plt.tight_layout()
     plt.draw()
 
+    plt.close()
+
     return precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models
 
 

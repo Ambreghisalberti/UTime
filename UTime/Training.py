@@ -109,8 +109,8 @@ class Training():
 
         if self.verbose_plot:
             if 'fig' in kwargs and 'ax' in kwargs:
-                fig = kwargs['fig']
-                ax = kwargs['ax']
+                fig = kwargs.pop('fig')
+                ax = kwargs.pop('ax')
             else:
                 fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(3,3))
 
@@ -128,7 +128,7 @@ class Training():
 
         else:
             for e in range(self.epochs):
-                self.epoch(self.dltrain, **kwargs)
+                self.epoch(self.dltrain, fig=fig, ax=ax, **kwargs)
             self.stop_epoch = self.epochs
 
         t_end = time.time()

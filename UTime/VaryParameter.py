@@ -100,10 +100,12 @@ def vary_parameter(windows, **kwargs):
     plt.savefig(path + ".png")
     plt.close()
 
+    compare_scores(scores, description=description)
+
     return scores
 
 
-def compare_scores(scores):
+def compare_scores(scores, **kwargs):
     plt.figure()
     plt.errorbar(np.arange(len(scores)) - 0.1, scores.mean_precision.values,
                  yerr=scores.std_precision.values, fmt="o", label='Precision')
@@ -114,7 +116,7 @@ def compare_scores(scores):
 
     plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
     labels = np.array(scores.index.values)
-    plt.xticks(ticks=np.arange(len(scores)), labels=labels, rotation = 45)
+    plt.xticks(ticks=np.arange(len(scores)), labels=labels, rotation=45)
     plt.ylabel("Scores, in %")
 
     variable = labels[0].split('=')[0]
@@ -127,4 +129,5 @@ def compare_scores(scores):
         plt.axhline(scores.mean_recall.values[i], alpha=0.4, linestyle='--', color='orange')
     '''
     plt.show()
-    plt.savefig(f"/home/ghisalberti/BL_encoder_decoder/model/diagnostics/{variable}_effect_on_scores.png")
+    plt.savefig(f"/home/ghisalberti/BL_encoder_decoder/model/diagnostics/"
+                f"{variable}_effect_on_scores{kwargs.get('description','')}.png")
