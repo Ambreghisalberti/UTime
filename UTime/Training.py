@@ -108,11 +108,16 @@ class Training():
         t_begin = time.time()
 
         if self.verbose_plot:
+            '''
             if 'fig' in kwargs and 'ax' in kwargs:
                 fig = kwargs.pop('fig')
                 ax = kwargs.pop('ax')
             else:
                 fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(3,3))
+            '''
+            if 'fig' not in kwargs or 'ax' not in kwargs:
+                fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(3,3))
+                kwargs['fig'], kwargs['ax'] = fig, ax
 
         if early_stop:
             patience = kwargs.get('patience', 10)
@@ -122,13 +127,16 @@ class Training():
                                            verbose=self.verbose)
 
             while (self.current_epoch < self.epochs) & (early_stopping.early_stop == False):
+                #self.epoch(self.dltrain, fig=fig, ax=ax, **kwargs)
                 self.epoch(self.dltrain, fig=fig, ax=ax, **kwargs)
                 early_stopping(self.val_loss[-1], self.model)
             self.stop_epoch = early_stopping.stop_epoch
 
         else:
             for e in range(self.epochs):
+                #self.epoch(self.dltrain, fig=fig, ax=ax, **kwargs)
                 self.epoch(self.dltrain, fig=fig, ax=ax, **kwargs)
+
             self.stop_epoch = self.epochs
 
         t_end = time.time()
@@ -139,6 +147,7 @@ class Training():
             else:
                 self.info(fig=fig, ax=ax, label=True)
 
+        plt.close()
 
     def info(self, **kwargs):
         if 'fig' in kwargs and 'ax' in kwargs:
