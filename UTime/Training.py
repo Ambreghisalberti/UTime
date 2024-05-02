@@ -143,9 +143,9 @@ class Training():
         if self.verbose_plot:
             print(f"Total training done in {t_end - t_begin} seconds and {self.stop_epoch} epochs.")
             if early_stop:
-                self.info(early_stopping=early_stopping, fig=fig, ax=ax, label=True)
+                self.info(early_stopping=early_stopping, fig=kwargs['fig'], ax=kwargs['ax'], label=True)
             else:
-                self.info(fig=fig, ax=ax, label=True)
+                self.info(fig=kwargs['fig'], ax=kwargs['ax'], label=True)
 
         plt.close()
 

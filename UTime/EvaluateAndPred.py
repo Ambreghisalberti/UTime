@@ -7,7 +7,7 @@ from .CostFunctions import WeightedMSE, WeightedBCE
 import copy
 from torch.utils.data import random_split, DataLoader
 from .Training import Training
-
+from .CrossValidation import get_loss_functions
 
 class Model():
 
@@ -169,21 +169,6 @@ class Model():
 
         return thresholds[np.argmax(F1_scores)]
 
-    def get_loss_functions(self, loss_function, dl_train, dl_test):
-
-        if loss_function == 'CEL':
-            train_loss, test_loss = CrossEntropyLoss(reduction='mean'), CrossEntropyLoss(reduction='mean')
-        elif loss_function == 'MSE':
-            train_loss, test_loss = MSELoss(), MSELoss()
-        elif loss_function == 'WeightedMSE':
-            train_loss, test_loss = WeightedMSE(dl=dl_train), WeightedMSE(dl=dl_test)
-        elif loss_function == 'BCE':
-            train_loss, test_loss = BCELoss(), BCELoss()
-        elif loss_function == 'WeightedBCE':
-            train_loss, test_loss = WeightedBCE(dl=dl_train), WeightedBCE(dl=dl_test)
-
-        return train_loss, test_loss
-
     def cross_validation(self, windows, nb_iter, loss_function):
         # Créer une copie du modèle
         architecture = self.double()
@@ -201,7 +186,7 @@ class Model():
             dl_test = DataLoader(test, shuffle=True)
 
             # Training
-            train_loss, test_loss = self.get_loss_functions(loss_function, dl_train, dl_test)
+            train_loss, test_loss = get_loss_functions(loss_function, dl_train, dl_test)
             training = Training(model, 2000, dl_train, dltest=dl_test, dlval=dl_test, validation=True,
                                 # To make it more general, get those parameters from kwargs?
                                 train_criterion=train_loss, val_criterion=test_loss,
