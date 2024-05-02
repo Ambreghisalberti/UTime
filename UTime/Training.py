@@ -128,14 +128,14 @@ class Training():
 
             while (self.current_epoch < self.epochs) & (early_stopping.early_stop == False):
                 #self.epoch(self.dltrain, fig=fig, ax=ax, **kwargs)
-                self.epoch(self.dltrain, fig=fig, ax=ax, **kwargs)
+                self.epoch(self.dltrain, **kwargs)
                 early_stopping(self.val_loss[-1], self.model)
             self.stop_epoch = early_stopping.stop_epoch
 
         else:
             for e in range(self.epochs):
                 #self.epoch(self.dltrain, fig=fig, ax=ax, **kwargs)
-                self.epoch(self.dltrain, fig=fig, ax=ax, **kwargs)
+                self.epoch(self.dltrain, **kwargs)
 
             self.stop_epoch = self.epochs
 
