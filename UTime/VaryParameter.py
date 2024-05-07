@@ -71,13 +71,13 @@ def vary_parameter(windows, **kwargs):
 
     fig, axes = plt.subplots(ncols=2, nrows=len(depth), figsize=(6, 3 * len(depth)))
     plt.draw()
+    nb_iter = kwargs.pop('nb_iter', 5)
 
     for i, (d, ks, nf, tp, lf) in enumerate(zip(depth, kernel_size, nb_filters, test_proportion, loss_function)):
         value = values[i]
         name = f'depth={d}_filters={nf}_kernel={ks}_{lf}_testsize={test_proportion}' + description
         architecture = UTime(1, windows.win_length, len(windows.moments_features),
                              len(windows.spectro_features), d, nf, ks, 2)
-        nb_iter = kwargs.pop('nb_iter', 5)
         precisions, recalls, F1_scores, TPRs, FPRs, AUCs, models = cross_validation(architecture, windows,
                                                                                     nb_iter, lf,
                                                                                     test_ratio=tp, fig=fig,

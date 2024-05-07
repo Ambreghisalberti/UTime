@@ -147,6 +147,7 @@ class Training():
             else:
                 self.info(fig=kwargs['fig'], ax=kwargs['ax'], label=True)
 
+        plt.tight_layout()
         #plt.close()
 
     def info(self, **kwargs):

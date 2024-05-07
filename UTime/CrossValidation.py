@@ -119,6 +119,8 @@ def plot_mean_ROC(FPRs, TPRs, AUCs, **kwargs):
     ax.title.set_text(f"ROC for the cross-validation\nmean AUC = {round(np.mean(np.array(AUCs)), 2)}")
     display.clear_output(wait=True)
     display.display(plt.gcf())
+    plt.tight_layout()
+
     #plt.close()
 
 
