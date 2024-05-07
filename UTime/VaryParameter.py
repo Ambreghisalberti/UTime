@@ -98,7 +98,7 @@ def vary_parameter(windows, **kwargs):
     plt.tight_layout()
     plt.ioff()
     plt.savefig(path + ".png")
-    plt.close()
+    #plt.close()
 
     compare_scores(scores, description=description)
 

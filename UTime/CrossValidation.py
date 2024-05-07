@@ -52,7 +52,7 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
     plt.tight_layout()
     plt.draw()
 
-    plt.close()
+    #plt.close()
 
     return precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models
 
@@ -118,6 +118,7 @@ def plot_mean_ROC(FPRs, TPRs, AUCs, **kwargs):
     ax.title.set_text(f"ROC for the cross-validation\nmean AUC = {round(np.mean(np.array(AUCs)), 2)}")
     display.clear_output(wait=True)
     display.display(plt.gcf())
+    #plt.close()
 
 
 def initialize_pretrained_model(new_model, pretrained_model):
