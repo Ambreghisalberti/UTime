@@ -27,13 +27,14 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
         if "pretrained" in kwargs:
             model = initialize_pretrained_model(model, kwargs["pretrained"])
 
-        dl_train, dl_test = make_dataloaders(windows, test_ratio=kwargs.get('test_ratio', 0.2))
+        dl_train, dl_test = make_dataloaders(windows, test_ratio=kwargs.get('test_ratio', 0.2),
+                                             batch_size=kwargs.get('batch_size',10))
 
         train_loss, test_loss = get_loss_functions(loss_function, dl_train, dl_test)
         training = Training(model, 2000, dl_train, dltest=dl_test, dlval=dl_test, validation=True,
                             # To make it more general, get those parameters from kwargs?
                             train_criterion=train_loss, val_criterion=test_loss,
-                            learning_rate=0.001, verbose_plot=True if iter == 0 else False, mirrored=True,
+                            learning_rate=kwargs.get('lr',0.001), verbose_plot=True if iter == 0 else False, mirrored=True,
                             **kwargs)
 
         '''training = Training(model, 2000, dl_train, dltest = dl_test, dlval=dl_test, validation=True,     # To make it more general, get those parameters from kwargs?
@@ -72,9 +73,9 @@ def get_loss_functions(loss_function, dl_train, dl_test):
     return train_loss, test_loss
 
 
-def make_dataloaders(windows, test_ratio=0.2):
+def make_dataloaders(windows, test_ratio=0.2, batch_size=10):
     train, test = random_split(windows, [1 - test_ratio, test_ratio])
-    dl_train = DataLoader(train, batch_size=10, shuffle=True)
+    dl_train = DataLoader(train, batch_size=batch_size, shuffle=True)
     dl_test = DataLoader(test, shuffle=True)
     return dl_train, dl_test
 
