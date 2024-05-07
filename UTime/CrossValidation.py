@@ -53,6 +53,9 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
     plt.tight_layout()
     plt.draw()
 
+    if 'savefig' in kwargs:
+        plt.savefig('/home/ghisalberti/BL_encoder_decoder/model/diagnostics/'+kwargs['savefig']+'.png')
+
     #plt.close()
 
     return precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models
