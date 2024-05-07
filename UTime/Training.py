@@ -147,7 +147,7 @@ class Training():
             else:
                 self.info(fig=kwargs['fig'], ax=kwargs['ax'], label=True)
 
-        plt.close()
+        #plt.close()
 
     def info(self, **kwargs):
         if 'fig' in kwargs and 'ax' in kwargs:
