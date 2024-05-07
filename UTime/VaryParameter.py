@@ -128,6 +128,6 @@ def compare_scores(scores, **kwargs):
         plt.axhline(scores.mean_precision.values[i], alpha=0.2, linestyle='--', color='b')
         plt.axhline(scores.mean_recall.values[i], alpha=0.4, linestyle='--', color='orange')
     '''
-    plt.show()
     plt.savefig(f"/home/ghisalberti/BL_encoder_decoder/model/diagnostics/"
                 f"{variable}_effect_on_scores{kwargs.get('description','')}.png")
+    plt.show()
