@@ -143,10 +143,10 @@ class UTime(nn.Module, Model):
                 _,nb,_,_ = residual.shape
                 moments = layer(moments)
                 _,nb2,_,_ = moments.shape
-                dimension_matching_conv = nn.Conv2d(nb, nb2, kernel_size=(1, 1), padding='same').double()
+                dimension_matching_conv = nn.Conv2d(nb, nb2, kernel_size=(1, 1), padding='same').double().to(self.device)
                 residual = dimension_matching_conv(residual)
                 if self.batch_norm:
-                    norm = BatchNorm2d(num_features=nb2).double()
+                    norm = BatchNorm2d(num_features=nb2).double().to(self.device)
                     residual = norm(residual)
             elif isinstance(layer, nn.ReLU):
                 moments = layer(moments)+residual
@@ -166,10 +166,10 @@ class UTime(nn.Module, Model):
                 _, nb, _, _ = residual.shape
                 spectro = layer(spectro)
                 _, nb2, _, _ = spectro.shape
-                dimension_matching_conv = nn.Conv2d(nb, nb2, kernel_size=(1, 1), padding='same').double()
+                dimension_matching_conv = nn.Conv2d(nb, nb2, kernel_size=(1, 1), padding='same').double().to(self.device)
                 residual = dimension_matching_conv(residual)
                 if self.batch_norm:
-                    norm = BatchNorm2d(num_features=nb2).double()
+                    norm = BatchNorm2d(num_features=nb2).double().to(self.device)
                     residual = norm(residual)
             elif isinstance(layer, nn.ReLU):
                 spectro = layer(spectro) + residual
@@ -207,10 +207,10 @@ class UTime(nn.Module, Model):
                 _, nb, _, _ = residual.shape
                 x = layer(x)
                 _, nb2, _, _ = x.shape
-                dimension_matching_conv = nn.Conv2d(nb, nb2, kernel_size=(1, 1), padding='same').double()
+                dimension_matching_conv = nn.Conv2d(nb, nb2, kernel_size=(1, 1), padding='same').double().to(self.device)
                 residual = dimension_matching_conv(residual)
                 if self.batch_norm:
-                    norm = BatchNorm2d(num_features=nb2).double()
+                    norm = BatchNorm2d(num_features=nb2).double().to(self.device)
                     residual = norm(residual)
             elif isinstance(layer, nn.ReLU):
                 x = layer(x) + residual
