@@ -119,7 +119,8 @@ def plot_mean_ROC(FPRs, TPRs, AUCs, **kwargs):
 
     ax.set_xlabel("False Positive Rate")
     ax.set_ylabel("True Positive Rate")
-    ax.title.set_text(f"ROC for the cross-validation\nmean AUC = {round(np.mean(np.array(AUCs)), 2)}")
+    ax.title.set_text(f"ROC for the cross-validation\n AUC = {round(np.mean(np.array(AUCs)), 2)} "
+                      f"+/- {round(np.std(np.array(AUCs)),3)}")
     display.clear_output(wait=True)
     display.display(plt.gcf())
     plt.tight_layout()
