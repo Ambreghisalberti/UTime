@@ -44,8 +44,7 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
         if kwargs.get('plot_ROC', False):
             training.fit(verbose=False, early_stop=kwargs.get('early_stop', True), patience=kwargs.get('patience', 40),
                          fig=fig, ax=axes[0], ax_ROC=axes[1])
-            if kwargs.get('make_movie', False):
-                plt.savefig('/home/ghisalberti/BL_encoder_decoder/model/movies/'+kwargs.get('savefig',str(datetime.now())[:10])+f'_{iter}.png')
+
         else:
             training.fit(verbose=False, early_stop=kwargs.get('early_stop', True), patience=kwargs.get('patience', 40),
                      fig=fig, ax=axes[0])
@@ -59,9 +58,6 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
         plot_mean_ROC(FPRs, TPRs, AUCs, fig=fig, ax=axes[1])
     plt.tight_layout()
     plt.draw()
-
-    if 'savefig' in kwargs:
-        plt.savefig('/home/ghisalberti/BL_encoder_decoder/model/diagnostics/'+kwargs['savefig']+'.png')
 
     #plt.close()
 

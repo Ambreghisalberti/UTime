@@ -105,14 +105,21 @@ class Training():
         if 'ax_ROC' in kwargs:
             FPR, TPR = self.model.ROC(dl=self.dltest, verbose=False)
             plt.cla()
-            kwargs['ax_ROC'].plot(FPR, TPR)
+            ax = kwargs['ax_ROC']
+            ax.plot(FPR, TPR)
+            ax.xlabel('FPR')
+            ax.ylabel('TPR')
+            ax.title('ROC')
             plt.draw()
             display.clear_output(wait=True)
             display.display(plt.gcf())
 
+        if 'savefig' in kwargs:
+            plt.savefig('/home/ghisalberti/BL_encoder_decoder/model/diagnostics/' + kwargs['savefig'] + '.png')
+
         if self.variable_lr:
             self.scheduler.step()
-            
+
 
     def fit(self, **kwargs):
         self.current_epoch = 0
@@ -153,6 +160,10 @@ class Training():
             self.stop_epoch = self.epochs
 
         t_end = time.time()
+
+        if kwargs.get('make_movie', False):
+            plt.savefig('/home/ghisalberti/BL_encoder_decoder/model/movies/' + self.name + '_{:04d}.png'.format(self.current_epoch))
+
         if self.verbose_plot:
             print(f"Total training done in {t_end - t_begin} seconds and {self.stop_epoch} epochs.")
             if early_stop:
