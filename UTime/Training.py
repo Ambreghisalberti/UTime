@@ -8,7 +8,7 @@ from .CostFunctions import WeightedMSE, WeightedBCE
 from .EarlyStopping import EarlyStopping
 from torch.nn import MSELoss
 from IPython import display
-
+from torch.optim.lr_scheduler import ExponentialLR
 
 class Training():
 
@@ -26,6 +26,9 @@ class Training():
         self.val_loss = []
         self.lr = kwargs.get('lr', 0.001)
         self.optimizer = kwargs.get('optimizer', optim.Adam(self.model.parameters(), self.lr))
+        self.variable_lr = kwargs.get('variable_lr',False)
+        if self.variable_lr :
+            self.scheduler = ExponentialLR(self.optimizer, gamma=0.95)
 
         self.verbose = kwargs.get('verbose', False)
         self.verbose_plot = kwargs.get('verbose_plot', False)
@@ -107,6 +110,9 @@ class Training():
             display.clear_output(wait=True)
             display.display(plt.gcf())
 
+        if self.variable_lr:
+            self.scheduler.step()
+            
 
     def fit(self, **kwargs):
         self.current_epoch = 0
