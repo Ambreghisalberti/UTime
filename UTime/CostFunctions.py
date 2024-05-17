@@ -50,3 +50,12 @@ class WeightedMSE(torch.nn.Module):
         # loss = F.cross_entropy(input, target, weight = torch.tensor([self.weight_not_BL,self.weight_BL]))
         loss = torch.mean(weights * (input - target) ** 2)
         return loss
+
+class DiceLoss(torch.nn.Module):
+
+    def __init__(self):
+        pass
+
+    def forward(self, input, target, epsilon=0.000000001):
+        return (1 - (input*target + epsilon).sum()/(input + target + epsilon).sum() -
+                ((1-input)*(1-target) + epsilon).sum())/((1-input) + (1-target) + epsilon).sum()

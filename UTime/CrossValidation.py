@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 from torch.nn import MSELoss, CrossEntropyLoss, BCELoss
-from .CostFunctions import WeightedMSE, WeightedBCE
+from .CostFunctions import WeightedMSE, WeightedBCE, DiceLoss
 from torch.utils.data import DataLoader, random_split
 from sklearn.metrics import auc
 import numpy as np
@@ -8,7 +8,7 @@ import scipy
 import copy
 from .Training import Training
 from IPython import display
-
+from datetime import datetime
 
 def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
     if 'fig' in kwargs and 'ax' in kwargs:
@@ -40,7 +40,14 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
         '''training = Training(model, 2000, dl_train, dltest = dl_test, dlval=dl_test, validation=True,     # To make it more general, get those parameters from kwargs?
                                        train_criterion = train_loss,val_criterion = test_loss,
                                        learning_rate=0.001, verbose_plot = True, mirrored = True)'''
-        training.fit(verbose=False, early_stop=kwargs.get('early_stop', True), patience=kwargs.get('patience', 40),
+
+        if kwargs.get('plot_ROC', False):
+            training.fit(verbose=False, early_stop=kwargs.get('early_stop', True), patience=kwargs.get('patience', 40),
+                         fig=fig, ax=axes[0], ax_ROC=axes[1])
+            if kwargs.get('make_movie', False):
+                plt.savefig('/home/ghisalberti/BL_encoder_decoder/model/movies/'+kwargs.get('savefig',str(datetime.now())[:10])+f'_{iter}.png')
+        else:
+            training.fit(verbose=False, early_stop=kwargs.get('early_stop', True), patience=kwargs.get('patience', 40),
                      fig=fig, ax=axes[0])
         precisions, recalls, F1_scores, FPRs, TPRs, AUCs = add_scores(model, dl_test, precisions, recalls, F1_scores,
                                                                       FPRs, TPRs, AUCs)
@@ -72,7 +79,8 @@ def get_loss_functions(loss_function, dl_train, dl_test):
         train_loss, test_loss = BCELoss(), BCELoss()
     elif loss_function == 'WeightedBCE':
         train_loss, test_loss = WeightedBCE(dl=dl_train), WeightedBCE(dl=dl_test)
-
+    elif loss_function == 'DiceLoss':
+        train_loss, test_loss = DiceLoss(), DiceLoss()
     return train_loss, test_loss
 
 

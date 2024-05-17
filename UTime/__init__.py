@@ -33,10 +33,24 @@ class DataForWindows(Dataset):
         self.labelled_condition = kwargs.get('labelled_condition', ['isLabelled'])
         self.dataset = select_windows(self.dataset, self.labelled_condition + self.conditions)
 
-        scaler = StandardScaler()
-        self.dataset.loc[:,self.ml_features] = scaler.fit_transform(self.dataset.loc[:,self.ml_features])
-        self.all_dataset.loc[:,self.ml_features] = scaler.transform(self.all_dataset.loc[:,self.ml_features])
-        self.scaler = scaler
+        if kwargs.get('spectro_normalization','per_channel') == 'per_channel':
+            scaler = StandardScaler()
+            self.dataset.loc[:,self.ml_features] = scaler.fit_transform(self.dataset.loc[:,self.ml_features])
+            self.all_dataset.loc[:,self.ml_features] = scaler.transform(self.all_dataset.loc[:,self.ml_features])
+            self.scaler = scaler
+
+        elif kwargs.get('spectro_normalization', 'per_channel') == 'overall':
+            scaler = StandardScaler()
+            self.dataset.loc[:, self.moments_features] = scaler.fit_transform(self.dataset.loc[:, self.moments_features])
+            self.all_dataset.loc[:, self.moments_features] = scaler.transform(self.all_dataset.loc[:, self.moments_features])
+            self.scaler = scaler
+
+            self.mean_spectro = self.dataset.loc[:, self.spectro_features].mean()
+            self.std_spectro = self.dataset.loc[:, self.spectro_features].std()
+            self.dataset.loc[:, self.spectro_features] = (self.dataset.loc[:, self.spectro_features] -
+                                                          self.mean_spectro)/self.std_spectro
+            self.all_dataset.loc[:, self.spectro_features] = (self.all_dataset.loc[:, self.spectro_features] -
+                                                               self.mean_spectro)/ self.std_spectro
 
     def __len__(self):
         return len(self.dataset) // self.win_length

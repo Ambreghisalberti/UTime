@@ -178,3 +178,27 @@ class UTime(nn.Module, Model):
             x = layer(x)
 
         return x
+
+    def compute_receptive_field(self):
+        further_point = 0
+        for i,layer in enumerate(self.encoder):
+            if isinstance(layer, nn.Conv2d):
+                further_point += (self.kernels[i]-1)//2
+            if isinstance(layer, nn.MaxPool2d):
+                field *= self.poolings[i]
+
+        field2d = 1
+        for i,layer in enumerate(self.encoder2D):
+            if isinstance(layer, nn.Conv2d):
+                field2d *= self.kernels[i]
+            if isinstance(layer, nn.MaxPool2d):
+                field2d *= self.poolings[i]
+
+        assert field==field2d, ("The encoder1D and encoder2D are supposed to have the same receptive fields, "
+                                "a computation error might have occurred.")
+
+        for i,layer in enumerate(self.decoder):
+            if isinstance(layer, nn.Conv2d):
+                field2d *= self.kernels[i]
+            if isinstance(layer, nn.MaxPool2d):
+                field2d *= self.poolings[i]

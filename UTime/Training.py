@@ -99,6 +99,13 @@ class Training():
             fig, ax = kwargs['fig'], kwargs['ax']
             self.info(fig=fig, ax=ax)
 
+        if 'ax_ROC' in kwargs:
+            FPR, TPR = self.model.ROC(dl=self.dltest, verbose=False)
+            plt.cla()
+            kwargs['ax_ROC'].plot(FPR, TPR)
+            plt.draw()
+            display.clear_output(wait=True)
+            display.display(plt.gcf())
 
 
     def fit(self, **kwargs):
