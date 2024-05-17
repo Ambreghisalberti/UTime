@@ -40,10 +40,11 @@ class DataForWindows(Dataset):
             self.scaler = scaler
 
         elif kwargs.get('spectro_normalization', 'per_channel') == 'overall':
-            scaler = StandardScaler()
-            self.dataset.loc[:, self.moments_features] = scaler.fit_transform(self.dataset.loc[:, self.moments_features])
-            self.all_dataset.loc[:, self.moments_features] = scaler.transform(self.all_dataset.loc[:, self.moments_features])
-            self.scaler = scaler
+            if len(self.moments_features)>0:
+                scaler = StandardScaler()
+                self.dataset.loc[:, self.moments_features] = scaler.fit_transform(self.dataset.loc[:, self.moments_features])
+                self.all_dataset.loc[:, self.moments_features] = scaler.transform(self.all_dataset.loc[:, self.moments_features])
+                self.scaler = scaler
 
             self.mean_spectro = self.dataset.loc[:, self.spectro_features].mean()
             self.std_spectro = self.dataset.loc[:, self.spectro_features].std()
