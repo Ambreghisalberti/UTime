@@ -99,7 +99,7 @@ class Training():
             self.val_loss.append(self.model.evaluate(self.dlval, self.val_criterion, mirrored=self.mirrored))
 
         if self.verbose_plot:
-            fig, ax = kwargs['fig'], kwargs['ax']
+            fig, ax = kwargs.pop('fig'), kwargs.pop('ax')
             self.info(fig=fig, ax=ax, **kwargs)
 
         if self.variable_lr:
