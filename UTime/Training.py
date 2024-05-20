@@ -100,7 +100,7 @@ class Training():
 
         if self.verbose_plot:
             fig, ax = kwargs['fig'], kwargs['ax']
-            self.info(fig=fig, ax=ax)
+            self.info(fig=fig, ax=ax, **kwargs)
 
         if self.variable_lr:
             self.scheduler.step()
