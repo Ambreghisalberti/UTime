@@ -102,21 +102,6 @@ class Training():
             fig, ax = kwargs['fig'], kwargs['ax']
             self.info(fig=fig, ax=ax)
 
-        if 'ax_ROC' in kwargs:
-            FPR, TPR = self.model.ROC(dl=self.dltest, verbose=False)
-            plt.cla()
-            ax = kwargs['ax_ROC']
-            ax.plot(FPR, TPR)
-            ax.set_xlabel('FPR')
-            ax.set_ylabel('TPR')
-            ax.set_title('ROC')
-            plt.draw()
-            display.clear_output(wait=True)
-            display.display(plt.gcf())
-
-        if 'savefig' in kwargs:
-            plt.savefig('/home/ghisalberti/BL_encoder_decoder/model/diagnostics/' + kwargs['savefig'] + '.png')
-
         if self.variable_lr:
             self.scheduler.step()
 
@@ -161,9 +146,6 @@ class Training():
 
         t_end = time.time()
 
-        if kwargs.get('make_movie', False):
-            plt.savefig('/home/ghisalberti/BL_encoder_decoder/model/movies/' + self.name + '_{:04d}.png'.format(self.current_epoch))
-
         if self.verbose_plot:
             print(f"Total training done in {t_end - t_begin} seconds and {self.stop_epoch} epochs.")
             if early_stop:
@@ -197,7 +179,20 @@ class Training():
             ax.axvline(early_stopping.stop_epoch-1, linestyle='--', color='r', label='Stopping Checkpoint')
             ax.title.set_text(f'{self.name}\nnum_epochs = {early_stopping.stop_epoch}.')
         ax.legend()
+
+        if 'ax_ROC' in kwargs:
+            FPR, TPR = self.model.ROC(dl=self.dltest, verbose=False)
+            plt.cla()
+            ax = kwargs['ax_ROC']
+            ax.plot(FPR, TPR)
+            ax.set_xlabel('FPR')
+            ax.set_ylabel('TPR')
+            ax.set_title('ROC')
+
         plt.tight_layout()
         plt.draw()
         display.clear_output(wait=True)
         display.display(plt.gcf())
+
+        if kwargs.get('make_movie', False):
+            plt.savefig('/home/ghisalberti/BL_encoder_decoder/model/movies/' + self.name + '_{:04d}.png'.format(self.current_epoch))
