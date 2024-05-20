@@ -9,6 +9,7 @@ from .EarlyStopping import EarlyStopping
 from torch.nn import MSELoss
 from IPython import display
 from torch.optim.lr_scheduler import ExponentialLR
+from sklearn.metrics import auc
 
 class Training():
 
@@ -186,12 +187,11 @@ class Training():
             ax.plot(FPR, TPR)
             ax.set_xlabel('FPR')
             ax.set_ylabel('TPR')
-            ax.set_title('ROC')
+            ax.set_title(f'ROC, AUC = {round(auc(FPR, TPR),2)}')
 
         plt.tight_layout()
         plt.draw()
-        display.clear_output(wait=True)
-        display.display(plt.gcf())
-
         if kwargs.get('make_movie', False):
             plt.savefig('/home/ghisalberti/BL_encoder_decoder/model/movies/' + self.name + '_{:04d}.png'.format(self.current_epoch))
+        display.clear_output(wait=True)
+        display.display(plt.gcf())
