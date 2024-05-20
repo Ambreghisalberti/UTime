@@ -107,9 +107,9 @@ class Training():
             plt.cla()
             ax = kwargs['ax_ROC']
             ax.plot(FPR, TPR)
-            ax.xlabel('FPR')
-            ax.ylabel('TPR')
-            ax.title('ROC')
+            ax.set_xlabel('FPR')
+            ax.set_ylabel('TPR')
+            ax.set_title('ROC')
             plt.draw()
             display.clear_output(wait=True)
             display.display(plt.gcf())
