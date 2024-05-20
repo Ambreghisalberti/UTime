@@ -182,7 +182,6 @@ class Training():
 
         if 'ax_ROC' in kwargs:
             FPR, TPR = self.model.ROC(dl=self.dltest, verbose=False)
-            plt.cla()
             ax = kwargs['ax_ROC']
             ax.plot(FPR, TPR)
             ax.set_xlabel('FPR')
