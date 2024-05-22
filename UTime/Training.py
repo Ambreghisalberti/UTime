@@ -149,10 +149,12 @@ class Training():
 
         if self.verbose_plot:
             print(f"Total training done in {t_end - t_begin} seconds and {self.stop_epoch} epochs.")
+            fig=kwargs.pop('fig')
+            ax=kwargs.pop('ax')
             if early_stop:
-                self.info(early_stopping=early_stopping, fig=kwargs['fig'], ax=kwargs['ax'], label=True)
+                self.info(early_stopping=early_stopping, fig=fig, ax=ax, label=True)
             else:
-                self.info(fig=kwargs['fig'], ax=kwargs['ax'], label=True)
+                self.info(fig=fig, ax=ax, label=True)
 
         plt.tight_layout()
         #plt.close()
@@ -187,11 +189,14 @@ class Training():
             ax.plot(FPR, TPR)
             ax.set_xlabel('FPR')
             ax.set_ylabel('TPR')
-            ax.set_title(f'ROC, AUC = {round(auc(FPR, TPR),2)}')
+            ax.set_title(f'ROC, AUC = {round(auc(FPR, TPR),3)}')
 
         plt.tight_layout()
         plt.draw()
         if kwargs.get('make_movie', False):
-            plt.savefig('/home/ghisalberti/BL_encoder_decoder/model/movies/' + self.name + '_{:04d}.png'.format(self.current_epoch))
+            print('Make movie OK')
+            path = '/home/ghisalberti/BL_encoder_decoder/model/movies/' + self.name + '_{:04d}.png'.format(self.current_epoch)
+            print(path)
+            plt.savefig(path)
         display.clear_output(wait=True)
         display.display(plt.gcf())
