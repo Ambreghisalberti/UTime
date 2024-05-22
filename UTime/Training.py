@@ -152,9 +152,9 @@ class Training():
             fig=kwargs.pop('fig')
             ax=kwargs.pop('ax')
             if early_stop:
-                self.info(early_stopping=early_stopping, fig=fig, ax=ax, label=True)
+                self.info(early_stopping=early_stopping, fig=fig, ax=ax, label=True, **kwargs)
             else:
-                self.info(fig=fig, ax=ax, label=True)
+                self.info(fig=fig, ax=ax, label=True, **kwargs)
 
         plt.tight_layout()
         #plt.close()
