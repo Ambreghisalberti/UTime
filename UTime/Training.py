@@ -62,6 +62,8 @@ class Training():
         return loss.detach()
 
     def epoch(self, dl, **kwargs):
+        if 'make_movie' in kwargs:
+            print('Make movie in epoch')
         # Training
         time1_seconds = time.time()
         self.model.train()
@@ -99,6 +101,7 @@ class Training():
         if self.validation:
             self.val_loss.append(self.model.evaluate(self.dlval, self.val_criterion, mirrored=self.mirrored))
 
+        print(f"verbose_plot = {self.verbose_plot}")
         if self.verbose_plot:
             fig, ax = kwargs.pop('fig'), kwargs.pop('ax')
             self.info(fig=fig, ax=ax, **kwargs)
@@ -108,6 +111,9 @@ class Training():
 
 
     def fit(self, **kwargs):
+        if 'make_movie' in kwargs:
+            print('Make movie in epoch')
+
         self.current_epoch = 0
         self.verbose = kwargs.get("verbose", False)
         early_stop = kwargs.get('early_stop', False)
