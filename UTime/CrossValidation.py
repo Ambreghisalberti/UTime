@@ -19,7 +19,7 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
 
     architecture = architecture.double()
     precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models = [], [], [], [], [], [], []
-    name = kwargs.pop('name')
+    name = kwargs.pop('name', str(datetime.now())[:10])
 
     for iter in range(nb_iter):
         print(f'\nIteration {iter} :')
@@ -60,7 +60,8 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
     plt.tight_layout()
     plt.draw()
 
-    #plt.close()
+    if kwargs.get('savefig', False):
+        plt.savefig('/home/ghisalberti/BL_encoder_decoder/model/diagnostics/'+name+'_cross_val.png')
 
     return precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models
 
