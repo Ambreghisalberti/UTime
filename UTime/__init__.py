@@ -71,8 +71,8 @@ class DataForWindows(Dataset):
 
     def normalize(self, spectro_normalization, **kwargs):
         if spectro_normalization == 'per_channel':
-            self.dataset, self.scaler = self.normalize_per_channel(self, self.ml_features, self.dataset)
-            self.all_dataset, _ = self.normalize_per_channel(self, self.ml_features, self.all_dataset,
+            self.dataset, self.scaler = self.normalize_per_channel(self.ml_features, self.dataset)
+            self.all_dataset, _ = self.normalize_per_channel(self.ml_features, self.all_dataset,
                                                              scaler=self.scaler)
 
         elif spectro_normalization == 'overall':
