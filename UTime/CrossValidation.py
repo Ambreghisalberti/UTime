@@ -35,7 +35,7 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
                             # To make it more general, get those parameters from kwargs?
                             train_criterion=train_loss, val_criterion=test_loss,
                             learning_rate=kwargs.get('lr',0.001), verbose_plot=True, mirrored=True,
-                            **kwargs)
+                            name = kwargs.pop('name')+f'_iter{iter}', **kwargs)
 
         '''training = Training(model, 2000, dl_train, dltest = dl_test, dlval=dl_test, validation=True,     # To make it more general, get those parameters from kwargs?
                                        train_criterion = train_loss,val_criterion = test_loss,

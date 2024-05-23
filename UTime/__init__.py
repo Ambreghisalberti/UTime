@@ -33,29 +33,68 @@ class DataForWindows(Dataset):
         self.labelled_condition = kwargs.get('labelled_condition', ['isLabelled'])
         self.dataset = select_windows(self.dataset, self.labelled_condition + self.conditions)
 
+        self.spectro_normalization_method = kwargs.get('spectro_normalization', 'per_channel')
+
         if kwargs.get('spectro_normalization','per_channel') == 'per_channel':
-            scaler = StandardScaler()
-            self.dataset.loc[:,self.ml_features] = scaler.fit_transform(self.dataset.loc[:,self.ml_features])
-            self.all_dataset.loc[:,self.ml_features] = scaler.transform(self.all_dataset.loc[:,self.ml_features])
-            self.scaler = scaler
+            self.dataset, self.scaler = self.normalize_per_channel(self, self.ml_features, self.dataset)
+            self.all_dataset, _ = self.normalize_per_channel(self, self.ml_features, self.all_dataset, scaler=self.scaler)
 
         elif kwargs.get('spectro_normalization', 'per_channel') == 'overall':
-            if len(self.moments_features)>0:
-                scaler = StandardScaler()
-                self.dataset.loc[:, self.moments_features] = scaler.fit_transform(self.dataset.loc[:, self.moments_features])
-                self.all_dataset.loc[:, self.moments_features] = scaler.transform(self.all_dataset.loc[:, self.moments_features])
-                self.scaler = scaler
+            self.dataset, self.scaler = self.normalize_per_channel(self, self.moments_features, self.dataset)
+            self.all_dataset, _ = self.normalize_per_channel(self, self.moments_features, self.all_dataset,
+                                                             scaler=self.scaler)
+            self.dataset, self.mean_spectro, self.std_spectro = self.normalize_overall(self, self.spectro_features,
+                                                                                       self.dataset)
+            self.dataset, _, _ = self.normalize_overall(self, self.spectro_features, self.all_dataset,
+                                                        mean=self.mean_spectro, std=self.std_spectro)
 
-            self.mean_spectro = self.dataset.loc[:, self.spectro_features].mean()
-            self.std_spectro = self.dataset.loc[:, self.spectro_features].std()
-            self.dataset.loc[:, self.spectro_features] = (self.dataset.loc[:, self.spectro_features] -
-                                                          self.mean_spectro)/self.std_spectro
-            self.all_dataset.loc[:, self.spectro_features] = (self.all_dataset.loc[:, self.spectro_features] -
-                                                               self.mean_spectro)/ self.std_spectro
+
 
     def __len__(self):
         return len(self.dataset) // self.win_length
 
+    def normalize_per_channel(self, features, df, **kwargs):
+        if len(features)>0:
+            if 'scaler' not in kwargs:
+                scaler = StandardScaler()
+                scaler.fit(df.loc[:, features])
+            else:
+                scaler = kwargs['scaler']
+            df.loc[:, features] = scaler.transform(df.loc[:, features])
+        return df, scaler
+
+    def normalize_overall(self, features, df, **kwargs):
+        if len(features) > 0:
+            if 'mean' not in kwargs or 'std' not in kwargs:
+                mean = df.loc[:, features].mean()
+                std = df.loc[:, features].std()
+            else:
+                mean, std = kwargs['mean'], kwargs['std']
+            df.loc[:, features] = (df.loc[:, features] - mean) / std
+        return df, mean, std
+
+    def normalize_overall_spectro(self):
+        self.dataset, self.scaler = self.normalize_per_channel(self, self.moments_features, self.dataset)
+        self.all_dataset, _ = self.normalize_per_channel(self, self.moments_features, self.all_dataset,
+                                                         scaler=self.scaler)
+        self.dataset, self.mean_spectro, self.std_spectro = self.normalize_overall(self, self.spectro_features,
+                                                                                   self.dataset)
+        self.all_dataset, _, _ = self.normalize_overall(self, self.spectro_features, self.all_dataset,
+                                                        mean=self.mean_spectro, std=self.std_spectro)
+
+    def normalize(self, spectro_normalization, **kwargs):
+        if spectro_normalization == 'per_channel':
+            self.dataset, self.scaler = self.normalize_per_channel(self, self.ml_features, self.dataset)
+            self.all_dataset, _ = self.normalize_per_channel(self, self.ml_features, self.all_dataset,
+                                                             scaler=self.scaler)
+
+        elif spectro_normalization == 'overall':
+            self.normalize_overall_spectro()
+
+        elif spectro_normalization == 'overall_log':
+            self.dataset.loc[:,self.spectro_features] = np.log(self.dataset.loc[:,self.spectro_features].values)
+            self.all_dataset.loc[:,self.spectro_features] = np.log(self.all_dataset.loc[:,self.spectro_features].values)
+            self.normalize_overall_spectro()
 
 
 class Windows(DataForWindows):
