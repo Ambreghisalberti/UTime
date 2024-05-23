@@ -102,7 +102,7 @@ class Windows(DataForWindows):
         labels = torch.tensor(np.transpose(subdf[self.label].values).reshape((len(self.label), 1, self.win_length))).double()
         times = subdf.index.values
 
-        return times, (moments, spectro), labels
+        return i, (moments, spectro), labels
 
     def all_pred(self, model, threshold=0.5):
         nbrWindows = nbr_windows(self.all_dataset, self.win_length)
@@ -146,7 +146,7 @@ class WindowsSpectro2D(DataForWindows):
         labels = torch.tensor(np.transpose(subdf[self.label].values).reshape((len(self.label), 1, self.win_length))).double()
 
         times = subdf.index.values
-        return times, inputs, labels
+        return i, inputs, labels
 
     def all_pred(self, model, threshold=0.5):
         nbrWindows = nbr_windows(self.all_dataset, self.win_length)
@@ -179,7 +179,7 @@ class WindowsMoments(DataForWindows):
         inputs = torch.tensor(np.transpose(subdf[self.moments_features].values).reshape((len(self.moments_features),1,self.win_length))).double()
         labels = torch.tensor(np.transpose(subdf[self.label].values).reshape((len(self.label), 1, self.win_length))).double()
         times = subdf.index.values
-        return times, inputs, labels
+        return i, inputs, labels
 
     def all_pred(self, model, threshold=0.5):
         nbrWindows = nbr_windows(self.all_dataset, self.win_length)
