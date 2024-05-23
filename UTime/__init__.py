@@ -34,20 +34,7 @@ class DataForWindows(Dataset):
         self.dataset = select_windows(self.dataset, self.labelled_condition + self.conditions)
 
         self.spectro_normalization_method = kwargs.get('spectro_normalization', 'per_channel')
-
-        if kwargs.get('spectro_normalization','per_channel') == 'per_channel':
-            self.dataset, self.scaler = self.normalize_per_channel(self, self.ml_features, self.dataset)
-            self.all_dataset, _ = self.normalize_per_channel(self, self.ml_features, self.all_dataset, scaler=self.scaler)
-
-        elif kwargs.get('spectro_normalization', 'per_channel') == 'overall':
-            self.dataset, self.scaler = self.normalize_per_channel(self, self.moments_features, self.dataset)
-            self.all_dataset, _ = self.normalize_per_channel(self, self.moments_features, self.all_dataset,
-                                                             scaler=self.scaler)
-            self.dataset, self.mean_spectro, self.std_spectro = self.normalize_overall(self, self.spectro_features,
-                                                                                       self.dataset)
-            self.dataset, _, _ = self.normalize_overall(self, self.spectro_features, self.all_dataset,
-                                                        mean=self.mean_spectro, std=self.std_spectro)
-
+        self.normalize(self.spectro_normalization_method)
 
 
     def __len__(self):
