@@ -84,7 +84,7 @@ class DataForWindows(Dataset):
 
         elif spectro_normalization == 'overall_log':
             self.dataset[self.spectro_features] = self.dataset[self.spectro_features].where(
-                self.dataset[self.spectro_features]<0.001, 0.001)
+                self.dataset[self.spectro_features]>0.001, 0.001)
             # Replace 0 by 0.001
             self.dataset.loc[:,self.spectro_features] = np.log(self.dataset.loc[:,self.spectro_features].values)
             self.all_dataset.loc[:,self.spectro_features] = np.log(self.all_dataset.loc[:,self.spectro_features].values)
