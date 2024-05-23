@@ -61,12 +61,12 @@ class DataForWindows(Dataset):
         return df, mean, std
 
     def normalize_overall_spectro(self):
-        self.dataset, self.scaler = self.normalize_per_channel(self, self.moments_features, self.dataset)
-        self.all_dataset, _ = self.normalize_per_channel(self, self.moments_features, self.all_dataset,
+        self.dataset, self.scaler = self.normalize_per_channel(self.moments_features, self.dataset)
+        self.all_dataset, _ = self.normalize_per_channel(self.moments_features, self.all_dataset,
                                                          scaler=self.scaler)
-        self.dataset, self.mean_spectro, self.std_spectro = self.normalize_overall(self, self.spectro_features,
+        self.dataset, self.mean_spectro, self.std_spectro = self.normalize_overall(self.spectro_features,
                                                                                    self.dataset)
-        self.all_dataset, _, _ = self.normalize_overall(self, self.spectro_features, self.all_dataset,
+        self.all_dataset, _, _ = self.normalize_overall(self.spectro_features, self.all_dataset,
                                                         mean=self.mean_spectro, std=self.std_spectro)
 
     def normalize(self, spectro_normalization, **kwargs):
