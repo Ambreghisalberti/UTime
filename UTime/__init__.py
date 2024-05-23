@@ -48,6 +48,8 @@ class DataForWindows(Dataset):
             else:
                 scaler = kwargs['scaler']
             df.loc[:, features] = scaler.transform(df.loc[:, features])
+        else:
+            scaler = None
         return df, scaler
 
     def normalize_overall(self, features, df, **kwargs):
@@ -58,6 +60,8 @@ class DataForWindows(Dataset):
             else:
                 mean, std = kwargs['mean'], kwargs['std']
             df.loc[:, features] = (df.loc[:, features] - mean) / std
+        else:
+            mean, std = None, None
         return df, mean, std
 
     def normalize_overall_spectro(self):
