@@ -54,7 +54,7 @@ class WeightedMSE(torch.nn.Module):
 class DiceLoss(torch.nn.Module):
 
     def __init__(self):
-        pass
+        super(DiceLoss, self).__init__()
 
     def forward(self, input, target, epsilon=0.000000001):
         return (1 - (input*target + epsilon).sum()/(input + target + epsilon).sum() -
