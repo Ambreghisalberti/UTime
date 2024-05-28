@@ -44,11 +44,11 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
 
         if kwargs.get('plot_ROC', False):
             training.fit(verbose=False, early_stop=kwargs.get('early_stop', True), patience=kwargs.get('patience', 40),
-                         fig=fig, ax=axes[0], ax_ROC=axes[1])
+                         fig=fig, ax=axes[0], ax_ROC=axes[1], label=True if iter==0 else False)
 
         else:
             training.fit(verbose=False, early_stop=kwargs.get('early_stop', True), patience=kwargs.get('patience', 40),
-                     fig=fig, ax=axes[0])
+                     fig=fig, ax=axes[0], label=True if iter==0 else False)
         precisions, recalls, F1_scores, FPRs, TPRs, AUCs = add_scores(model, dl_test, precisions, recalls, F1_scores,
                                                                       FPRs, TPRs, AUCs)
         models.append(training.model.to('cpu'))
