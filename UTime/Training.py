@@ -192,6 +192,8 @@ class Training():
             ax.set_xlabel('FPR')
             ax.set_ylabel('TPR')
             ax.set_title(f'ROC, AUC = {round(auc(FPR, TPR),3)}')
+            ax.plot(np.linspace(0,1,100),np.linspace(0,1,100),linestyle='--', alpha=0.5,
+                    color='grey')
 
         plt.tight_layout()
         plt.draw()
