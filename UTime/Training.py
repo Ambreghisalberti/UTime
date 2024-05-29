@@ -114,7 +114,7 @@ class Training():
         self.verbose = kwargs.get("verbose", False)
         early_stop = kwargs.get('early_stop', False)
         t_begin = time.time()
-        label = kwargs.get('label', False)
+        label = kwargs.pop('label', False)
 
         if self.verbose_plot:
             '''
