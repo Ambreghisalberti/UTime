@@ -114,6 +114,7 @@ class Training():
         self.verbose = kwargs.get("verbose", False)
         early_stop = kwargs.get('early_stop', False)
         t_begin = time.time()
+        label = kwargs.get('label', False)
 
         if self.verbose_plot:
             '''
@@ -136,14 +137,14 @@ class Training():
 
             while (self.current_epoch < self.epochs) & (early_stopping.early_stop == False):
                 #self.epoch(self.dltrain, fig=fig, ax=ax, **kwargs)
-                self.epoch(self.dltrain, **kwargs)
+                self.epoch(self.dltrain, label=True if label and self.current_epoch==0 else False, **kwargs)
                 early_stopping(self.val_loss[-1], self.model)
             self.stop_epoch = early_stopping.stop_epoch
 
         else:
             for e in range(self.epochs):
                 #self.epoch(self.dltrain, fig=fig, ax=ax, **kwargs)
-                self.epoch(self.dltrain, **kwargs)
+                self.epoch(self.dltrain, label=True if label and e==0 else False, **kwargs)
 
             self.stop_epoch = self.epochs
 
