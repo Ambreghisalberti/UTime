@@ -36,6 +36,7 @@ class UTime(nn.Module, Model):
         self.encoder2D = self._build_encoder2D()
         # print(self.encoder)
         # print(self.encoder2D)
+        self.common_encoder = self._build_common_encoder()
 
         # Decoder layers
         self.decoder = self._build_decoder()
@@ -64,9 +65,7 @@ class UTime(nn.Module, Model):
             if self.batch_norm:
                 layers.append(BatchNorm2d(num_features=self.filters[i]))
             layers.append(nn.ReLU(inplace=True))
-
             layers.append(nn.MaxPool2d(kernel_size=(1, self.poolings[i])))
-
             self.sizes.append(int(self.sizes[-1] // self.poolings[i]))
 
         layers.append(nn.Conv2d(self.filters[-2], self.filters[-1], kernel_size=(self.kernels[-1], self.kernels[-1]),
@@ -91,7 +90,7 @@ class UTime(nn.Module, Model):
                 layers.append(BatchNorm2d(num_features=self.filters[i]))
             layers.append(nn.ReLU(inplace=True))
 
-            layers.append(nn.MaxPool2d(kernel_size=(self.poolings[i], self.poolings[i])))
+            layers.append(nn.MaxPool2d(kernel_size=(self.poolings[i], min(self.poolings[i], self.nb_channels_spectro[-1]))))
 
             self.nb_channels_spectro.append(int(self.nb_channels_spectro[-1] // self.poolings[i]))
 
@@ -103,6 +102,13 @@ class UTime(nn.Module, Model):
         layers.append(nn.ReLU(inplace=True))
 
         return nn.Sequential(*layers)
+
+    def _build_common_encoder(self):
+        layers = []
+        layers.append(nn.Conv2d(self.filters[-1] * 2, self.filters[- 1], kernel_size=(1, self.kernels[-1]),
+                     padding='same'))
+        return nn.Sequential(*layers)
+
 
     def _build_decoder(self):
         layers = []
@@ -145,17 +151,18 @@ class UTime(nn.Module, Model):
             if isinstance(layer, nn.MaxPool2d):
                 encoder_spectro_outputs.append(spectro)
             spectro = layer(spectro)
-
-        # Concatenate moments and spectro encoder info
+        # Squish spectro encoder output in 1D
+        ''' These following lines ensure that if there are still several channels in the spectro, 
+        it will be transformed into something of the same shape as the moments results, to be concatenated'''
         spectro = torch.mean(spectro, dim=2)
-        ''' These following lines ensure that if there are still severl channels in the spectro, 
-        it will be transformed into something of the same shape as the moments resultss, to be concatenated'''
         a, b, c = spectro.shape
         spectro = spectro.reshape((a, b, 1, c))
+
+        # Concatenate moments and spectro encoder info
         x = torch.cat([spectro, moments], dim=1).double()
-        conv = nn.Conv2d(self.filters[-1] * 2, self.filters[- 1], kernel_size=(1, self.kernels[-1]),
-                         padding='same').double().to(self.device)
-        x = conv(x.double())
+        # This version is only for the case where common encoder is just one convolution, not keeping encoding!
+        for layer in self.common_encoder:
+            x = layer(x)
 
         # Decoder with skip connections
         for i, layer in enumerate(self.decoder):
