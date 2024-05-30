@@ -72,7 +72,7 @@ def train_one_iter(model, iter, loss_function, dl_train, dl_test, models, train_
     precisions, recalls, F1_scores, FPRs, TPRs, AUCs = add_scores(model, dl_test, precisions, recalls, F1_scores,
                                                                   FPRs, TPRs, AUCs)
     models.append(training.model.to('cpu'))
-    train_losses.append(training.train_loss)
+    train_losses.append(training.training_loss)
     val_losses.append(training.val_loss)
     last_epochs.append(training.current_epoch)
 
