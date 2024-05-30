@@ -141,7 +141,7 @@ class Training():
                     label = True
                 else:
                     label = False
-                    self.epoch(self.dltrain, label=label, **kwargs)
+                self.epoch(self.dltrain, label=label, **kwargs)
                 early_stopping(self.val_loss[-1], self.model)
             self.stop_epoch = early_stopping.stop_epoch
 
