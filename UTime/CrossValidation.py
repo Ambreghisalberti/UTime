@@ -18,7 +18,8 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
         fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(6, 3))
 
     architecture = architecture.double()
-    precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models, trainings = [], [], [], [], [], [], [], []
+    precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models, train_losses, val_losses, last_epochs = (
+        [], [], [], [], [], [], [], [])
     name = kwargs.pop('name', str(datetime.now())[:10])
 
     for iter in range(nb_iter):
@@ -31,13 +32,14 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
         dl_train, dl_test = make_dataloaders(windows, test_ratio=kwargs.get('test_ratio', 0.2),
                                              batch_size=kwargs.get('batch_size',10))
 
-        precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models, trainings = train_one_iter(model, iter, loss_function, dl_train,
-                                                                                  dl_test, models, trainings, precisions,
-                                                                                  recalls,F1_scores, FPRs, TPRs, AUCs,
-                                                                                  fig, axes, **kwargs)
+        (precisions, recalls, F1_scores,
+         FPRs, TPRs, AUCs, models, train_losses,
+         val_losses, last_epochs) = train_one_iter(model, iter, loss_function, dl_train, dl_test, models, train_losses,
+                                                   val_losses, last_epochs, precisions, recalls,F1_scores, FPRs, TPRs,
+                                                   AUCs, fig, axes, **kwargs)
 
     if kwargs.get('verbose', True):
-        plot_mean_loss(models, fig=fig, ax=axes[0])
+        plot_mean_loss(train_losses, val_losses, last_epochs, fig=fig, ax=axes[0], **kwargs)
         plot_mean_ROC(FPRs, TPRs, AUCs, fig=fig, ax=axes[1])
     plt.tight_layout()
     plt.draw()
@@ -48,7 +50,7 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
     return precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models
 
 
-def train_one_iter(model, iter, loss_function, dl_train, dl_test, models, trainings, precisions, recalls, F1_scores,
+def train_one_iter(model, iter, loss_function, dl_train, dl_test, models, train_losses, val_losses, last_epochs, precisions, recalls, F1_scores,
                    FPRs, TPRs, AUCs, fig, axes, **kwargs):
     train_loss, test_loss = get_loss_functions(loss_function, dl_train, dl_test)
 
@@ -70,9 +72,11 @@ def train_one_iter(model, iter, loss_function, dl_train, dl_test, models, traini
     precisions, recalls, F1_scores, FPRs, TPRs, AUCs = add_scores(model, dl_test, precisions, recalls, F1_scores,
                                                                   FPRs, TPRs, AUCs)
     models.append(training.model.to('cpu'))
-    trainings.append(training.to('cpu'))
+    train_losses.append(training.train_loss)
+    val_losses.append(training.val_loss)
+    last_epochs.append(training.current_epoch)
 
-    return precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models, trainings
+    return precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models, train_losses, val_losses, last_epochs
 
 
 
@@ -152,21 +156,18 @@ def plot_mean_ROC(FPRs, TPRs, AUCs, **kwargs):
 
     #plt.close()
 
-def plot_mean_loss(trainings, **kwargs):
+def plot_mean_loss(train_losses, val_losses, last_epochs, **kwargs):
     current_epochs, epochs, train_losses, val_losses = [], [], [], []
-    for training in trainings:
-        current_epochs.append(training.current_epoch)
-        epochs += [list(np.arange(training.current_epoch))]
-        train_losses += [list(training.val_loss)]
-        val_losses += [list(training.val_loss)]
-    reference_epochs = np.arange(np.min(current_epochs))
+    for e in last_epochs:
+        epochs += [list(np.arange(e))]
+    reference_epochs = np.arange(np.min(last_epochs))
 
     fig, ax = plot_mean(reference_epochs, epochs, train_losses, color='green', color_mean = 'blue', **kwargs)
     fig, ax = plot_mean(reference_epochs, epochs, val_losses, color='orange', color_mean='red', fig=fig, ax=ax)
 
     ax.set_xlabel("Iterations")
     ax.set_ylabel("Loss")
-    ax.title.set_text()    # To fill
+    ax.title.set_text(f"{kwargs.get('name','')}'\nMean loss during training")    # To fill
     display.clear_output(wait=True)
     display.display(plt.gcf())
     plt.tight_layout()
