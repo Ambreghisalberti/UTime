@@ -155,9 +155,9 @@ class Training():
             fig=kwargs.pop('fig')
             ax=kwargs.pop('ax')
             if early_stop:
-                self.info(early_stopping=early_stopping, fig=fig, ax=ax, label=True, **kwargs)
+                self.info(early_stopping=early_stopping, fig=fig, ax=ax, label=False, **kwargs)
             else:
-                self.info(fig=fig, ax=ax, label=True, **kwargs)
+                self.info(fig=fig, ax=ax, label=False, **kwargs)
 
         plt.tight_layout()
         #plt.close()
@@ -184,11 +184,12 @@ class Training():
             early_stopping = kwargs['early_stopping']
             ax.axvline(early_stopping.stop_epoch-1, linestyle='--', color='r', label='Stopping Checkpoint')
             ax.title.set_text(f'{self.name}\nnum_epochs = {early_stopping.stop_epoch}.')
-        ax.legend(loc='center', bbox_to_anchor = (0.5, -0.15), fancybox=True, shadow=True)
+        ax.legend(loc='center', bbox_to_anchor = (0.5, -0.25), fancybox=True, shadow=True)
 
         if 'ax_ROC' in kwargs:
             FPR, TPR = self.model.ROC(dl=self.dltest, verbose=False)
             ax = kwargs['ax_ROC']
+            plt.cla()
             ax.scatter(FPR, TPR, s=0.1)
             ax.set_xlabel('FPR')
             ax.set_ylabel('TPR')
