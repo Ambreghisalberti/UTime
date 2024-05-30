@@ -136,7 +136,7 @@ def plot_mean(reference_x, x_list, y_list, **kwargs):
 
     ax.fill_between(reference_x, np.mean(interpolated_y, axis=0) - np.std(interpolated_y, axis=0),
                     np.mean(interpolated_y, axis=0) + np.std(interpolated_y, axis=0), alpha=0.5)
-    ax.plot(interpolated_y, np.mean(interpolated_y, axis=0), linewidth=2, color=kwargs.get('color_mean','red'),
+    ax.plot(reference_x, np.mean(interpolated_y, axis=0), linewidth=2, color=kwargs.get('color_mean','red'),
             label = kwargs.get('label', '_nolegend_'))
     ax.legend()
 
