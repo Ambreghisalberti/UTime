@@ -130,8 +130,11 @@ class Model():
         else:
             plt.scatter(np.array(FPR)[thresholds <= 0.5][-1], np.array(TPR)[thresholds <= 0.5][-1], s=30, **kwargs)
 
-    def ROC(self, dl, verbose=True, **kwargs):
+    def ROC(self, verbose=True, **kwargs):
         if 'pred' not in kwargs or 'target' not in kwargs:
+            if 'dl' not in kwargs:
+                raise Exception("Either pred and target must be given to ROC, or dl.")
+            dl = kwargs['dl']
             pred, target = self.compute_pred_and_target(dl)
         else:
             pred, target = kwargs['pred'], kwargs['target']
@@ -153,10 +156,12 @@ class Model():
 
             # Scatter a dot corresponding to a threshold close to 0.5
             self.scatter_threshold_on_ROC(0.5, FPR, TPR, thresholds, color='red')
-            best_threshold = self.find_best_threshold(dl, **kwargs)
-            self.scatter_threshold_on_ROC(best_threshold, FPR, TPR, thresholds, color='green')
+            plt.title(f"ROC, AUC = {round(auc(FPR, TPR),2)}")
 
-            plt.title(f"ROC, AUC = {round(auc(FPR, TPR),2)}\nbest_threshold = {round(best_threshold,2)}")
+            #best_threshold = self.find_best_threshold(dl, **kwargs)
+            #self.scatter_threshold_on_ROC(best_threshold, FPR, TPR, thresholds, color='green')
+
+            #plt.title(f"ROC, AUC = {round(auc(FPR, TPR),2)}\nbest_threshold = {round(best_threshold,2)}")
 
         return FPR, TPR
 
