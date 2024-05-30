@@ -168,7 +168,7 @@ class Training():
         else:
             fig,ax = plt.subplots(ncols=1, nrows=1, figsize=(3,3))
 
-        plt.cla()
+        ax.cla()
         label = kwargs.get('label', False)
         ax.plot(np.arange(self.current_epoch), torch.tensor(self.training_loss).detach().numpy(), color='blue',
                  label='Trainset' if label else '_nolegend_')
@@ -189,7 +189,7 @@ class Training():
         if 'ax_ROC' in kwargs:
             FPR, TPR = self.model.ROC(dl=self.dltest, verbose=False)
             ax = kwargs['ax_ROC']
-            plt.cla()
+            ax.cla()
             ax.scatter(FPR, TPR, s=0.1)
             ax.set_xlabel('FPR')
             ax.set_ylabel('TPR')

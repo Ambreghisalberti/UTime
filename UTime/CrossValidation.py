@@ -112,7 +112,7 @@ def plot_mean_ROC(FPRs, TPRs, AUCs, **kwargs):
     else:
         fig, ax = plt.subplots(nrows=1, ncols=1)
 
-    plt.cla()
+    ax.cla()
     ax.plot(np.linspace(0, 1, 100), np.linspace(0, 1, 100), linestyle='--', color='grey', alpha=0.5)
     reference_FPR = np.linspace(0, 1, 1000)
     interpolated_TPRs = TPRs.copy()
