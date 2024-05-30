@@ -131,7 +131,10 @@ class Model():
             plt.scatter(np.array(FPR)[thresholds <= 0.5][-1], np.array(TPR)[thresholds <= 0.5][-1], s=30, **kwargs)
 
     def ROC(self, dl, verbose=True, **kwargs):
-        pred, target = self.compute_pred_and_target(dl)
+        if 'pred' not in kwargs or 'target' not in kwargs:
+            pred, target = self.compute_pred_and_target(dl)
+        else:
+            pred, target = kwargs['pred'], kwargs['target']
 
         TPR = []
         FPR = []

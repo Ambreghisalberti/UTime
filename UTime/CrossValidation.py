@@ -18,7 +18,7 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
         fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(6, 3))
 
     architecture = architecture.double()
-    precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models = [], [], [], [], [], [], []
+    precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models, trainings = [], [], [], [], [], [], [], []
     name = kwargs.pop('name', str(datetime.now())[:10])
 
     for iter in range(nb_iter):
@@ -31,31 +31,13 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
         dl_train, dl_test = make_dataloaders(windows, test_ratio=kwargs.get('test_ratio', 0.2),
                                              batch_size=kwargs.get('batch_size',10))
 
-        train_loss, test_loss = get_loss_functions(loss_function, dl_train, dl_test)
-        training = Training(model, 2000, dl_train, dltest=dl_test, dlval=dl_test, validation=True,
-                            # To make it more general, get those parameters from kwargs?
-                            train_criterion=train_loss, val_criterion=test_loss,
-                            learning_rate=kwargs.get('lr',0.001), verbose_plot=True, mirrored=True,
-                            name = name+f'_iter{iter}', **kwargs)
-
-        '''training = Training(model, 2000, dl_train, dltest = dl_test, dlval=dl_test, validation=True,     # To make it more general, get those parameters from kwargs?
-                                       train_criterion = train_loss,val_criterion = test_loss,
-                                       learning_rate=0.001, verbose_plot = True, mirrored = True)'''
-
-        if kwargs.get('plot_ROC', False):
-            training.fit(verbose=False, early_stop=kwargs.get('early_stop', True), patience=kwargs.get('patience', 40),
-                         fig=fig, ax=axes[0], ax_ROC=axes[1], label=True if iter==0 else False)
-
-        else:
-            training.fit(verbose=False, early_stop=kwargs.get('early_stop', True), patience=kwargs.get('patience', 40),
-                     fig=fig, ax=axes[0], label=True if iter==0 else False)
-        precisions, recalls, F1_scores, FPRs, TPRs, AUCs = add_scores(model, dl_test, precisions, recalls, F1_scores,
-                                                                      FPRs, TPRs, AUCs)
-        models.append(training.model.to('cpu'))
-
-        del model, training
+        precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models, trainings = train_one_iter(model, iter, loss_function, dl_train,
+                                                                                  dl_test, models, trainings, precisions,
+                                                                                  recalls,F1_scores, FPRs, TPRs, AUCs,
+                                                                                  fig, axes, **kwargs)
 
     if kwargs.get('verbose', True):
+        plot_mean_loss(models, fig=fig, ax=axes[0])
         plot_mean_ROC(FPRs, TPRs, AUCs, fig=fig, ax=axes[1])
     plt.tight_layout()
     plt.draw()
@@ -64,6 +46,34 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
         plt.savefig('/home/ghisalberti/BL_encoder_decoder/model/diagnostics/'+name+'_cross_val.png')
 
     return precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models
+
+
+def train_one_iter(model, iter, loss_function, dl_train, dl_test, models, trainings, precisions, recalls, F1_scores,
+                   FPRs, TPRs, AUCs, fig, axes, **kwargs):
+    train_loss, test_loss = get_loss_functions(loss_function, dl_train, dl_test)
+
+    name = kwargs.pop('name', str(datetime.now())[:10])
+    training = Training(model, 2000, dl_train, dltest=dl_test, dlval=dl_test, validation=True,
+                        # To make it more general, get those parameters from kwargs?
+                        train_criterion=train_loss, val_criterion=test_loss,
+                        learning_rate=kwargs.get('lr', 0.001), verbose_plot=True, mirrored=True,
+                        name=name + f'_iter{iter}', **kwargs)
+
+
+    if kwargs.get('plot_ROC', False):
+        training.fit(verbose=False, early_stop=kwargs.get('early_stop', True), patience=kwargs.get('patience', 40),
+                     fig=fig, ax=axes[0], ax_ROC=axes[1], label=True)
+
+    else:
+        training.fit(verbose=False, early_stop=kwargs.get('early_stop', True), patience=kwargs.get('patience', 40),
+                     fig=fig, ax=axes[0], label=True)
+    precisions, recalls, F1_scores, FPRs, TPRs, AUCs = add_scores(model, dl_test, precisions, recalls, F1_scores,
+                                                                  FPRs, TPRs, AUCs)
+    models.append(training.model.to('cpu'))
+    trainings.append(training.to('cpu'))
+
+    return precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models, trainings
+
 
 
 def get_loss_functions(loss_function, dl_train, dl_test):
@@ -103,9 +113,9 @@ def add_scores(model, dl, precisions, recalls, F1_scores, FPRs, TPRs, AUCs):
 
     return precisions, recalls, F1_scores, FPRs, TPRs, AUCs
 
+def plot_mean(reference_x, x_list, y_list, **kwargs):
+    x_list, y_list = np.array(x_list), np.array(y_list)
 
-def plot_mean_ROC(FPRs, TPRs, AUCs, **kwargs):
-    FPRs, TPRs = np.array(FPRs), np.array(TPRs)
     if 'fig' in kwargs and 'ax' in kwargs:
         fig = kwargs['fig']
         ax = kwargs['ax']
@@ -113,16 +123,24 @@ def plot_mean_ROC(FPRs, TPRs, AUCs, **kwargs):
         fig, ax = plt.subplots(nrows=1, ncols=1)
 
     ax.cla()
-    ax.plot(np.linspace(0, 1, 100), np.linspace(0, 1, 100), linestyle='--', color='grey', alpha=0.5)
-    reference_FPR = np.linspace(0, 1, 1000)
-    interpolated_TPRs = TPRs.copy()
-    for i in range(len(TPRs)):
-        interpolated_TPRs[i] = scipy.interpolate.interp1d(FPRs[i], TPRs[i])(reference_FPR)
-        ax.plot(FPRs[i], TPRs[i], color='blue', linewidth=0.5)
 
-    ax.fill_between(reference_FPR, np.mean(interpolated_TPRs, axis=0) - np.std(interpolated_TPRs, axis=0),
-                    np.mean(interpolated_TPRs, axis=0) + np.std(interpolated_TPRs, axis=0), alpha=0.5)
-    ax.plot(reference_FPR, np.mean(interpolated_TPRs, axis=0), linewidth=2, color='red')
+    interpolated_y = y_list.copy()
+    for i in range(len(y_list)):
+        interpolated_y[i] = scipy.interpolate.interp1d(x_list[i], y_list[i])(reference_x)
+        ax.plot(x_list[i], y_list[i], color=kwargs.get('color','blue'), linewidth=0.5)
+
+    ax.fill_between(reference_x, np.mean(interpolated_y, axis=0) - np.std(interpolated_y, axis=0),
+                    np.mean(interpolated_y, axis=0) + np.std(interpolated_y, axis=0), alpha=0.5)
+    ax.plot(interpolated_y, np.mean(interpolated_y, axis=0), linewidth=2, color=kwargs.get('color_mean','red'),
+            label = kwargs.get('label', '_nolegend_'))
+    ax.legend()
+
+    return fig, ax
+
+
+def plot_mean_ROC(FPRs, TPRs, AUCs, **kwargs):
+    fig, ax = plot_mean(np.linspace(0, 1, 100), FPRs, TPRs, **kwargs)
+    ax.plot(np.linspace(0, 1, 100), np.linspace(0, 1, 100), linestyle='--', color='grey', alpha=0.5)
 
     ax.set_xlabel("False Positive Rate")
     ax.set_ylabel("True Positive Rate")
@@ -133,6 +151,25 @@ def plot_mean_ROC(FPRs, TPRs, AUCs, **kwargs):
     plt.tight_layout()
 
     #plt.close()
+
+def plot_mean_loss(trainings, **kwargs):
+    current_epochs, epochs, train_losses, val_losses = [], [], [], []
+    for training in trainings:
+        current_epochs.append(training.current_epoch)
+        epochs += [list(np.arange(training.current_epoch))]
+        train_losses += [list(training.val_loss)]
+        val_losses += [list(training.val_loss)]
+    reference_epochs = np.arange(np.min(current_epochs))
+
+    fig, ax = plot_mean(reference_epochs, epochs, train_losses, color='green', color_mean = 'blue', **kwargs)
+    fig, ax = plot_mean(reference_epochs, epochs, val_losses, color='orange', color_mean='red', fig=fig, ax=ax)
+
+    ax.set_xlabel("Iterations")
+    ax.set_ylabel("Loss")
+    ax.title.set_text()    # To fill
+    display.clear_output(wait=True)
+    display.display(plt.gcf())
+    plt.tight_layout()
 
 
 def initialize_pretrained_model(new_model, pretrained_model):
