@@ -63,12 +63,12 @@ def train_one_iter(model, iter, loss_function, dl_train, dl_test, models, train_
 
 
     if kwargs.get('plot_ROC', False):
-        training.fit(verbose=False, early_stop=kwargs.get('early_stop', True), patience=kwargs.get('patience', 40),
-                     fig=fig, ax=axes[0], ax_ROC=axes[1], label=True)
+        training.fit(verbose=False, early_stop=kwargs.pop('early_stop', True), patience=kwargs.pop('patience', 40),
+                     fig=fig, ax=axes[0], ax_ROC=axes[1], label=True, **kwargs)
 
     else:
-        training.fit(verbose=False, early_stop=kwargs.get('early_stop', True), patience=kwargs.get('patience', 40),
-                     fig=fig, ax=axes[0], label=True)
+        training.fit(verbose=False, early_stop=kwargs.pop('early_stop', True), patience=kwargs.pop('patience', 40),
+                     fig=fig, ax=axes[0], label=True, **kwargs)
     precisions, recalls, F1_scores, FPRs, TPRs, AUCs = add_scores(model, dl_test, precisions, recalls, F1_scores,
                                                                   FPRs, TPRs, AUCs)
     models.append(training.model.to('cpu'))
@@ -128,10 +128,11 @@ def plot_mean(reference_x, x_list, y_list, **kwargs):
 
     ax.cla()
 
-    interpolated_y = y_list.copy()
+    interpolated_y = [[] for i in range(y_list.shape[0])]
     for i in range(len(y_list)):
         interpolated_y[i] = scipy.interpolate.interp1d(x_list[i], y_list[i])(reference_x)
         ax.plot(x_list[i], y_list[i], color=kwargs.get('color','blue'), linewidth=0.5)
+    interpolated_y = np.array(interpolated_y)
 
     ax.fill_between(reference_x, np.mean(interpolated_y, axis=0) - np.std(interpolated_y, axis=0),
                     np.mean(interpolated_y, axis=0) + np.std(interpolated_y, axis=0), alpha=0.5)
@@ -143,7 +144,7 @@ def plot_mean(reference_x, x_list, y_list, **kwargs):
 
 
 def plot_mean_ROC(FPRs, TPRs, AUCs, **kwargs):
-    fig, ax = plot_mean(np.linspace(0, 1, 100), FPRs, TPRs, **kwargs)
+    fig, ax = plot_mean(np.linspace(0, 1, 1000), FPRs, TPRs, **kwargs)
     ax.plot(np.linspace(0, 1, 100), np.linspace(0, 1, 100), linestyle='--', color='grey', alpha=0.5)
 
     ax.set_xlabel("False Positive Rate")
