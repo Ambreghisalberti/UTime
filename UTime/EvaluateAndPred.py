@@ -106,12 +106,15 @@ class Model():
             FN = kwargs.get('FN')
 
         if (TP + FN) == 0:
-            raise Exception("There is no positive target, the recall is not defined.")
+            print("There is no positive target, the recall is not defined.")
+            recall = None
+        else:
+            recall = TP / (TP + FN)
         if (TP + FP) == 0:
-            raise Exception("There is no predicted positive class, the precision is not defined.")
-
-        precision = TP / (TP + FP)
-        recall = TP / (TP + FN)
+            print("There is no predicted positive class, the precision is not defined.")
+            precision = None
+        else:
+            precision = TP / (TP + FP)
         F1 = TP / (TP + (FN + FP) / 2)
 
         if verbose:
