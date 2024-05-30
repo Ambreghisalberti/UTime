@@ -107,12 +107,12 @@ class Model():
 
         if (TP + FN) == 0:
             print("There is no positive target, the recall is not defined.")
-            recall = None
+            recall = -1
         else:
             recall = TP / (TP + FN)
         if (TP + FP) == 0:
             print("There is no predicted positive class, the precision is not defined.")
-            precision = None
+            precision = -1
         else:
             precision = TP / (TP + FP)
         F1 = TP / (TP + (FN + FP) / 2)
