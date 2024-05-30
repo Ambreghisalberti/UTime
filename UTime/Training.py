@@ -137,10 +137,10 @@ class Training():
 
             while (self.current_epoch < self.epochs) & (early_stopping.early_stop == False):
                 #self.epoch(self.dltrain, fig=fig, ax=ax, **kwargs)
-                if label and self.current_epoch == 0:
+                '''if label and self.current_epoch == 0:
                     label = True
                 else:
-                    label = False
+                    label = False'''
                 self.epoch(self.dltrain, label=label, **kwargs)
                 early_stopping(self.val_loss[-1], self.model)
             self.stop_epoch = early_stopping.stop_epoch
@@ -148,10 +148,10 @@ class Training():
         else:
             for e in range(self.epochs):
                 #self.epoch(self.dltrain, fig=fig, ax=ax, **kwargs)
-                if label and e == 0:
+                '''if label and e == 0:
                     label = True
                 else:
-                    label = False
+                    label = False'''
                 self.epoch(self.dltrain, label=label, **kwargs)
 
             self.stop_epoch = self.epochs
