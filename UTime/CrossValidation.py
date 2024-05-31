@@ -159,11 +159,13 @@ def plot_mean_ROC(FPRs, TPRs, AUCs, **kwargs):
 
     #plt.close()
 
+
 def plot_mean_loss(train_losses, val_losses, last_epochs, **kwargs):
-    current_epochs, epochs, train_losses, val_losses = [], [], [], []
-    for e in last_epochs:
-        epochs += [list(np.arange(e))]
-    reference_epochs = np.arange(np.min(last_epochs))
+    max_epoch = np.min(last_epochs)
+    epochs = [list(np.arange(max_epoch)) for e in last_epochs]
+    reference_epochs = np.arange(max_epoch)
+    train_losses = [train_loss[:max_epoch] for train_loss in train_losses]
+    val_losses = [val_loss[:max_epoch] for val_loss in val_losses]
 
     fig, ax = plot_mean(reference_epochs, epochs, train_losses, color='green', color_mean = 'blue', **kwargs)
     fig, ax = plot_mean(reference_epochs, epochs, val_losses, color='orange', color_mean='red', fig=fig, ax=ax)
