@@ -128,8 +128,6 @@ def plot_mean(reference_x, x_list, y_list, **kwargs):
     else:
         fig, ax = plt.subplots(nrows=1, ncols=1)
 
-    ax.cla()
-
     interpolated_y = [[] for i in range(y_list.shape[0])]
     for i in range(len(y_list)):
         interpolated_y[i] = scipy.interpolate.interp1d(x_list[i], y_list[i])(reference_x)
@@ -147,6 +145,7 @@ def plot_mean(reference_x, x_list, y_list, **kwargs):
 
 def plot_mean_ROC(FPRs, TPRs, AUCs, **kwargs):
     fig, ax = plot_mean(np.linspace(0, 1, 1000), FPRs, TPRs, **kwargs)
+    ax.cla()
     ax.plot(np.linspace(0, 1, 100), np.linspace(0, 1, 100), linestyle='--', color='grey', alpha=0.5)
 
     ax.set_xlabel("False Positive Rate")
@@ -160,15 +159,18 @@ def plot_mean_ROC(FPRs, TPRs, AUCs, **kwargs):
     #plt.close()
 
 
-def plot_mean_loss(train_losses, val_losses, last_epochs, **kwargs):
+def plot_mean_loss(train_losses, val_losses, last_epochs, fig, ax, **kwargs):
     max_epoch = np.min(last_epochs)
     epochs = [list(np.arange(max_epoch)) for e in last_epochs]
     reference_epochs = np.arange(max_epoch)
     train_losses = [train_loss[:max_epoch] for train_loss in train_losses]
     val_losses = [val_loss[:max_epoch] for val_loss in val_losses]
 
-    fig, ax = plot_mean(reference_epochs, epochs, train_losses, color='green', color_mean = 'blue', label='Train loss', **kwargs)
-    fig, ax = plot_mean(reference_epochs, epochs, val_losses, color='orange', color_mean='red', label='Test loss', fig=fig, ax=ax)
+    ax.cla()
+    fig, ax = plot_mean(reference_epochs, epochs, train_losses, color='green', color_mean = 'blue', label='Train loss',
+                        fig=fig, ax=ax)
+    fig, ax = plot_mean(reference_epochs, epochs, val_losses, color='orange', color_mean='red', label='Test loss',
+                        fig=fig, ax=ax)
 
     ax.set_xlabel("Iterations")
     ax.set_ylabel("Loss")
