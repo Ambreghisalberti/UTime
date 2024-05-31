@@ -143,9 +143,9 @@ def plot_mean(reference_x, x_list, y_list, **kwargs):
     return fig, ax
 
 
-def plot_mean_ROC(FPRs, TPRs, AUCs, **kwargs):
-    fig, ax = plot_mean(np.linspace(0, 1, 1000), FPRs, TPRs, **kwargs)
+def plot_mean_ROC(FPRs, TPRs, AUCs, fig, ax, **kwargs):
     ax.cla()
+    fig, ax = plot_mean(np.linspace(0, 1, 1000), FPRs, TPRs, fig=fig, ax=ax)
     ax.plot(np.linspace(0, 1, 100), np.linspace(0, 1, 100), linestyle='--', color='grey', alpha=0.5)
 
     ax.set_xlabel("False Positive Rate")
