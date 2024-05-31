@@ -9,6 +9,7 @@ import copy
 from .Training import Training
 from IPython import display
 from datetime import datetime
+import torch
 
 def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
     if 'fig' in kwargs and 'ax' in kwargs:
@@ -50,8 +51,9 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
     return precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models
 
 
-def train_one_iter(model, iter, loss_function, dl_train, dl_test, models, train_losses, val_losses, last_epochs, precisions, recalls, F1_scores,
+def train_one_iter(model0, iter, loss_function, dl_train, dl_test, models, train_losses, val_losses, last_epochs, precisions, recalls, F1_scores,
                    FPRs, TPRs, AUCs, fig, axes, **kwargs):
+    model = copy.deepcopy(model0)
     train_loss, test_loss = get_loss_functions(loss_function, dl_train, dl_test)
 
     name = kwargs.pop('name', str(datetime.now())[:10])
@@ -72,8 +74,8 @@ def train_one_iter(model, iter, loss_function, dl_train, dl_test, models, train_
     precisions, recalls, F1_scores, FPRs, TPRs, AUCs = add_scores(model, dl_test, precisions, recalls, F1_scores,
                                                                   FPRs, TPRs, AUCs)
     models.append(training.model.to('cpu'))
-    train_losses.append(training.training_loss)
-    val_losses.append(training.val_loss)
+    train_losses.append(list(torch.Tensor(training.training_loss).numpy()))
+    val_losses.append(list(torch.Tensor(training.training_loss).numpy()))
     last_epochs.append(training.current_epoch)
 
     return precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models, train_losses, val_losses, last_epochs
