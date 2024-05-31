@@ -114,7 +114,7 @@ class Training():
         self.verbose = kwargs.get("verbose", False)
         early_stop = kwargs.get('early_stop', False)
         t_begin = time.time()
-        label = kwargs.pop('label', False)
+        label = kwargs.pop('label', True)
 
         if self.verbose_plot:
             '''
@@ -163,9 +163,9 @@ class Training():
             fig=kwargs.pop('fig')
             ax=kwargs.pop('ax')
             if early_stop:
-                self.info(early_stopping=early_stopping, fig=fig, ax=ax, label=False, **kwargs)
+                self.info(early_stopping=early_stopping, fig=fig, ax=ax, label=True, **kwargs)
             else:
-                self.info(fig=fig, ax=ax, label=False, **kwargs)
+                self.info(fig=fig, ax=ax, label=True, **kwargs)
 
         plt.tight_layout()
         #plt.close()
@@ -177,7 +177,7 @@ class Training():
             fig,ax = plt.subplots(ncols=1, nrows=1, figsize=(3,3))
 
         ax.cla()
-        label = kwargs.get('label', False)
+        label = kwargs.get('label', True)
         ax.plot(np.arange(self.current_epoch), torch.tensor(self.training_loss).detach().numpy(), color='blue',
                  label='Trainset' if label else '_nolegend_')
         ax.set_xlabel('Epochs')
@@ -192,7 +192,7 @@ class Training():
             early_stopping = kwargs['early_stopping']
             ax.axvline(early_stopping.stop_epoch-1, linestyle='--', color='r', label='Stopping Checkpoint')
             ax.title.set_text(f'{self.name}\nnum_epochs = {early_stopping.stop_epoch}.')
-        ax.legend(loc='center', bbox_to_anchor = (0.5, -0.25), fancybox=True, shadow=True)
+        ax.legend(loc='top center', bbox_to_anchor = (0.5, -0.2), fancybox=True, shadow=True)
 
         if 'ax_ROC' in kwargs:
             FPR, TPR = self.model.ROC(dl=self.dltest, verbose=False)
