@@ -75,7 +75,7 @@ def train_one_iter(model0, iter, loss_function, dl_train, dl_test, models, train
                                                                   FPRs, TPRs, AUCs)
     models.append(training.model.to('cpu'))
     train_losses.append(list(torch.Tensor(training.training_loss).numpy()))
-    val_losses.append(list(torch.Tensor(training.training_loss).numpy()))
+    val_losses.append(list(torch.Tensor(training.val_loss).numpy()))
     last_epochs.append(training.current_epoch)
 
     return precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models, train_losses, val_losses, last_epochs
@@ -167,12 +167,12 @@ def plot_mean_loss(train_losses, val_losses, last_epochs, **kwargs):
     train_losses = [train_loss[:max_epoch] for train_loss in train_losses]
     val_losses = [val_loss[:max_epoch] for val_loss in val_losses]
 
-    fig, ax = plot_mean(reference_epochs, epochs, train_losses, color='green', color_mean = 'blue', **kwargs)
-    fig, ax = plot_mean(reference_epochs, epochs, val_losses, color='orange', color_mean='red', fig=fig, ax=ax)
+    fig, ax = plot_mean(reference_epochs, epochs, train_losses, color='green', color_mean = 'blue', label='Train loss', **kwargs)
+    fig, ax = plot_mean(reference_epochs, epochs, val_losses, color='orange', color_mean='red', label='Test loss', fig=fig, ax=ax)
 
     ax.set_xlabel("Iterations")
     ax.set_ylabel("Loss")
-    ax.title.set_text(f"{kwargs.get('name','')}'\nMean loss during training")    # To fill
+    ax.title.set_text("Mean loss during training")
     display.clear_output(wait=True)
     display.display(plt.gcf())
     plt.tight_layout()
