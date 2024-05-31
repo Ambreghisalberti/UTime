@@ -192,7 +192,7 @@ class Training():
             early_stopping = kwargs['early_stopping']
             ax.axvline(early_stopping.stop_epoch-1, linestyle='--', color='r', label='Stopping Checkpoint')
             ax.title.set_text(f'{self.name}\nnum_epochs = {early_stopping.stop_epoch}.')
-        ax.legend(loc='top center', bbox_to_anchor = (0.5, -0.2), fancybox=True, shadow=True)
+        ax.legend(loc='upper center', bbox_to_anchor = (0.5, -0.2), fancybox=True, shadow=True)
 
         if 'ax_ROC' in kwargs:
             FPR, TPR = self.model.ROC(dl=self.dltest, verbose=False)
