@@ -26,7 +26,9 @@ class Training():
         self.dlval = kwargs.get('dlval')
         self.val_loss = []
         self.lr = kwargs.get('lr', 0.001)
-        self.optimizer = kwargs.get('optimizer', optim.Adam(self.model.parameters(), self.lr))
+        self.weight_decay = kwargs.get('weight_decay', 0)
+        self.optimizer = kwargs.get('optimizer', optim.Adam(self.model.parameters(), self.lr,
+                                                            weight_decay=self.weight_decay))
         self.variable_lr = kwargs.get('variable_lr',False)
         if self.variable_lr :
             self.scheduler = ExponentialLR(self.optimizer, gamma=0.95)
