@@ -24,6 +24,7 @@ class UTime(nn.Module, Model):
         self.filters = filters if isinstance(filters, list) else [int(filters * 2 ** i) for i in range(self.depth)]
         self.poolings = poolings if isinstance(poolings, (list, tuple)) else [poolings] * (self.depth - 1)
         self.kernels = kernels if isinstance(kernels, (list, tuple)) else [kernels] * self.depth
+        self.dropout = kwargs.get('dropout', 0)
 
         self.sizes = [n_time]
         self.nb_channels_spectro = [nb_channels_spectro]
@@ -56,6 +57,8 @@ class UTime(nn.Module, Model):
     def _build_encoder1D(self):
         layers = []
         for i in range(self.depth - 1):
+            layers.append(nn.Dropout(self.dropout))
+
             if i == 0:
                 layers.append(
                     nn.Conv2d(self.nb_moments, self.filters[i], kernel_size=(1, self.kernels[i]), padding='same'))
@@ -68,6 +71,7 @@ class UTime(nn.Module, Model):
             layers.append(nn.MaxPool2d(kernel_size=(1, self.poolings[i])))
             self.sizes.append(int(self.sizes[-1] // self.poolings[i]))
 
+        layers.append(nn.Dropout(self.dropout))
         layers.append(nn.Conv2d(self.filters[-2], self.filters[-1], kernel_size=(self.kernels[-1], self.kernels[-1]),
                                 padding='same'))
         if self.batch_norm:
@@ -79,6 +83,8 @@ class UTime(nn.Module, Model):
     def _build_encoder2D(self):
         layers = []
         for i in range(self.depth - 1):
+            layers.append(nn.Dropout(self.dropout))
+
             if i == 0:
                 layers.append(
                     nn.Conv2d(1, self.filters[i], kernel_size=(min(self.kernels[i], self.nb_channels_spectro[-1]), self.kernels[i]), padding='same'))
@@ -95,6 +101,7 @@ class UTime(nn.Module, Model):
             self.nb_channels_spectro.append(int(self.nb_channels_spectro[-1] // self.poolings[i]))
 
         # Last block without maxpooling
+        layers.append(nn.Dropout(self.dropout))
         layers.append(nn.Conv2d(self.filters[-2], self.filters[-1], kernel_size=(min(self.kernels[-1], self.nb_channels_spectro[-1]), self.kernels[-1]),
                                 padding='same'))
         if self.batch_norm:
@@ -115,6 +122,7 @@ class UTime(nn.Module, Model):
         for i in range(1, self.depth):
             # layers.append(nn.Upsample(scale_factor=(1,2)))
             layers.append(nn.Upsample(size=(1, self.sizes[::-1][i])))
+            layers.append(nn.Dropout(self.dropout))
             layers.append(nn.Conv2d(self.filters[-i] + 2 * self.filters[-i - 1], self.filters[-i - 1],
                                     kernel_size=(1, self.kernels[-i]), padding='same'))
             if self.batch_norm:
@@ -124,7 +132,8 @@ class UTime(nn.Module, Model):
         return nn.Sequential(*layers)
 
     def _build_classifier(self):
-        layers = [Conv2d(self.filters[0], self.n_classes, kernel_size=(1, 1))]
+
+        layers = [nn.Dropout(self.dropout), Conv2d(self.filters[0], self.n_classes, kernel_size=(1, 1))]
         if self.batch_norm:
             layers.append(BatchNorm2d(num_features=self.n_classes))
 

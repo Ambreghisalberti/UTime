@@ -30,6 +30,7 @@ class UTime(nn.Module, Model):
         self.nb_moments = nb_moments
         self.check_inputs()
         self.batch_norm = kwargs.get('batch_norm', True)
+        self.nb_blocks_per_layer = kwargs.get('nb_blocks_per_layer',1)
 
         # Encoder layers
         self.encoder = self._build_encoder1D()
@@ -55,15 +56,23 @@ class UTime(nn.Module, Model):
     def _build_encoder1D(self):
         layers = []
         for i in range(self.depth - 1):
-            if i == 0:
-                layers.append(
-                    nn.Conv2d(self.nb_moments, self.filters[i], kernel_size=(1, self.kernels[i]), padding='same'))
-            else:
-                layers.append(
-                    nn.Conv2d(self.filters[i - 1], self.filters[i], kernel_size=(1, self.kernels[i]), padding='same'))
-            if self.batch_norm:
-                layers.append(BatchNorm2d(num_features=self.filters[i]))
-            layers.append(nn.ReLU(inplace=True))
+            for iter in range(self.nb_blocks_per_layer):
+                if i == 0:
+                    layers.append(
+                        nn.Conv2d(self.nb_moments, self.filters[i], kernel_size=(1, self.kernels[i]), padding='same'))
+                else:
+                    layers.append(
+                        nn.Conv2d(self.filters[i - 1], self.filters[i], kernel_size=(1, self.kernels[i]), padding='same'))
+                if self.batch_norm:
+                    layers.append(BatchNorm2d(num_features=self.filters[i]))
+
+                for j in range(self.nb_blocks_per_layer-1):
+                    layers.append(
+                        nn.Conv2d(self.filters[i], self.filters[i], kernel_size=(1, self.kernels[i]), padding='same'))
+                    if self.batch_norm:
+                        layers.append(BatchNorm2d(num_features=self.filters[i]))
+
+                layers.append(nn.ReLU(inplace=True))
 
             layers.append(nn.MaxPool2d(kernel_size=(1, self.poolings[i])))
 
@@ -80,16 +89,17 @@ class UTime(nn.Module, Model):
     def _build_encoder2D(self):
         layers = []
         for i in range(self.depth - 1):
-            if i == 0:
-                layers.append(
-                    nn.Conv2d(1, self.filters[i], kernel_size=(min(self.kernels[i], self.nb_channels_spectro[-1]), self.kernels[i]), padding='same'))
-            else:
-                layers.append(nn.Conv2d(self.filters[i - 1], self.filters[i], kernel_size=(
-                min(self.kernels[i], self.nb_channels_spectro[-1]), self.kernels[i]), padding='same'))
+            for iter in range(self.nb_blocks_per_layer):
+                if i == 0:
+                    layers.append(
+                        nn.Conv2d(1, self.filters[i], kernel_size=(min(self.kernels[i], self.nb_channels_spectro[-1]), self.kernels[i]), padding='same'))
+                else:
+                    layers.append(nn.Conv2d(self.filters[i - 1], self.filters[i], kernel_size=(
+                    min(self.kernels[i], self.nb_channels_spectro[-1]), self.kernels[i]), padding='same'))
 
-            if self.batch_norm:
-                layers.append(BatchNorm2d(num_features=self.filters[i]))
-            layers.append(nn.ReLU(inplace=True))
+                if self.batch_norm:
+                    layers.append(BatchNorm2d(num_features=self.filters[i]))
+                layers.append(nn.ReLU(inplace=True))
 
             layers.append(nn.MaxPool2d(kernel_size=(self.poolings[i], self.poolings[i])))
 
@@ -109,11 +119,13 @@ class UTime(nn.Module, Model):
         for i in range(1, self.depth):
             # layers.append(nn.Upsample(scale_factor=(1,2)))
             layers.append(nn.Upsample(size=(1, self.sizes[::-1][i])))
-            layers.append(nn.Conv2d(self.filters[-i] + 2 * self.filters[-i - 1], self.filters[-i - 1],
-                                    kernel_size=(1, self.kernels[-i]), padding='same'))
-            if self.batch_norm:
-                layers.append(BatchNorm2d(num_features=self.filters[-i - 1]))
-            layers.append(nn.ReLU(inplace=True))
+
+            for iter in range(self.nb_blocks_per_layer):
+                layers.append(nn.Conv2d(self.filters[-i] + 2 * self.filters[-i - 1], self.filters[-i - 1],
+                                        kernel_size=(1, self.kernels[-i]), padding='same'))
+                if self.batch_norm:
+                    layers.append(BatchNorm2d(num_features=self.filters[-i - 1]))
+                layers.append(nn.ReLU(inplace=True))
 
         return nn.Sequential(*layers)
 
@@ -149,7 +161,7 @@ class UTime(nn.Module, Model):
                     norm = BatchNorm2d(num_features=nb2).double().to(self.device)
                     residual = norm(residual)
             elif isinstance(layer, nn.ReLU):
-                moments = layer(moments)+residual
+                moments = (layer(moments)+residual)/2
             elif isinstance(layer, nn.BatchNorm2d):
                 moments = layer(moments)
             else:
@@ -172,7 +184,7 @@ class UTime(nn.Module, Model):
                     norm = BatchNorm2d(num_features=nb2).double().to(self.device)
                     residual = norm(residual)
             elif isinstance(layer, nn.ReLU):
-                spectro = layer(spectro) + residual
+                spectro = (layer(spectro) + residual)/2
             elif isinstance(layer, nn.BatchNorm2d):
                 spectro = layer(spectro)
             else:
@@ -213,7 +225,7 @@ class UTime(nn.Module, Model):
                     norm = BatchNorm2d(num_features=nb2).double().to(self.device)
                     residual = norm(residual)
             elif isinstance(layer, nn.ReLU):
-                x = layer(x) + residual
+                x = (layer(x) + residual)/2
             elif isinstance(layer, nn.BatchNorm2d):
                 x = layer(x)
             else:
