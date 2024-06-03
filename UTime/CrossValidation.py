@@ -20,7 +20,7 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
 
     architecture = architecture.double()
     precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models, train_losses, val_losses, last_epochs = (
-        [], [], [], [], [], [], [], [])
+        [], [], [], [], [], [], [], [], [], [])
     name = kwargs.pop('name', str(datetime.now())[:10])
 
     for iter in range(nb_iter):
