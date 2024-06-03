@@ -37,7 +37,7 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
          FPRs, TPRs, AUCs, models, train_losses,
          val_losses, last_epochs) = train_one_iter(model, iter, loss_function, dl_train, dl_test, models, train_losses,
                                                    val_losses, last_epochs, precisions, recalls,F1_scores, FPRs, TPRs,
-                                                   AUCs, fig, axes, **kwargs)
+                                                   AUCs, fig, axes, name=name, **kwargs)
 
     if kwargs.get('verbose', True):
         plot_mean_loss(train_losses, val_losses, last_epochs, fig=fig, ax=axes[0], **kwargs)
@@ -66,11 +66,11 @@ def train_one_iter(model0, iter, loss_function, dl_train, dl_test, models, train
 
     if kwargs.get('plot_ROC', False):
         training.fit(verbose=False, early_stop=kwargs.pop('early_stop', True), patience=kwargs.pop('patience', 40),
-                     fig=fig, ax=axes[0], ax_ROC=axes[1], label=True, **kwargs)
+                     fig=fig, ax=axes[0], ax_ROC=axes[1], label=True, name=name + f'_iter{iter}', **kwargs)
 
     else:
         training.fit(verbose=False, early_stop=kwargs.pop('early_stop', True), patience=kwargs.pop('patience', 40),
-                     fig=fig, ax=axes[0], label=True, **kwargs)
+                     fig=fig, ax=axes[0], label=True, name=name + f'_iter{iter}', **kwargs)
     precisions, recalls, F1_scores, FPRs, TPRs, AUCs = add_scores(model, dl_test, precisions, recalls, F1_scores,
                                                                   FPRs, TPRs, AUCs)
     models.append(training.model.to('cpu'))
