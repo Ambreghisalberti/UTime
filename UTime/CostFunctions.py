@@ -20,7 +20,7 @@ class WeightedLoss():
 
 class WeightedBCE(torch.nn.Module, WeightedLoss):
     def __init__(self, dl):
-        super(WeightedBCE, self).__init__()
+        super(WeightedBCE, self).__init__(dl)
 
     def forward(self, input, target):
         weights = target * (self.weight_BL - self.weight_not_BL) + self.weight_not_BL
@@ -33,7 +33,7 @@ class WeightedBCE(torch.nn.Module, WeightedLoss):
 
 class WeightedMSE(torch.nn.Module, WeightedLoss):
     def __init__(self, dl):
-        super(WeightedMSE, self).__init__()
+        super(WeightedMSE, self).__init__(dl)
 
     def forward(self, input, target):
         weights = target * (self.weight_BL - self.weight_not_BL) + self.weight_not_BL
