@@ -96,7 +96,7 @@ class UTime(nn.Module, Model):
                 layers.append(BatchNorm2d(num_features=self.filters[i]))
             layers.append(nn.ReLU(inplace=True))
 
-            layers.append(nn.MaxPool2d(kernel_size=(self.poolings[i], min(self.poolings[i], self.nb_channels_spectro[-1]))))
+            layers.append(nn.MaxPool2d(kernel_size=(min(self.poolings[i], self.nb_channels_spectro[-1]),self.poolings[i])))
 
             self.nb_channels_spectro.append(int(self.nb_channels_spectro[-1] // self.poolings[i]))
 
