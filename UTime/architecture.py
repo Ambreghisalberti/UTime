@@ -72,7 +72,7 @@ class UTime(nn.Module, Model):
             self.sizes.append(int(self.sizes[-1] // self.poolings[i]))
 
         layers.append(nn.Dropout(self.dropout))
-        layers.append(nn.Conv2d(self.filters[-2], self.filters[-1], kernel_size=(self.kernels[-1], self.kernels[-1]),
+        layers.append(nn.Conv2d(self.filters[-2], self.filters[-1], kernel_size=(1, self.kernels[-1]),
                                 padding='same'))
         if self.batch_norm:
             layers.append(BatchNorm2d(num_features=self.filters[-1]))
@@ -85,12 +85,19 @@ class UTime(nn.Module, Model):
         for i in range(self.depth - 1):
             layers.append(nn.Dropout(self.dropout))
 
+            if self.nb_channels_spectro[-1] < self.kernels[i]:
+                kernel_size = (self.nb_channels_spectro[-1] - 1) // 2 * 2 + 1
+                '''This gives the closest smaller odd number (if nb_channels_spectro is odd, the value is kept, 
+                otherwise it gives nb_channels_spectro-1'''
+            else:
+                kernel_size = self.kernels[i]
+
             if i == 0:
                 layers.append(
-                    nn.Conv2d(1, self.filters[i], kernel_size=(min(self.kernels[i], self.nb_channels_spectro[-1]), self.kernels[i]), padding='same'))
+                    nn.Conv2d(1, self.filters[i], kernel_size=(kernel_size, self.kernels[i]), padding='same'))
             else:
-                layers.append(nn.Conv2d(self.filters[i - 1], self.filters[i], kernel_size=(
-                min(self.kernels[i], self.nb_channels_spectro[-1]), self.kernels[i]), padding='same'))
+                layers.append(nn.Conv2d(self.filters[i - 1], self.filters[i],
+                                        kernel_size=(kernel_size, self.kernels[i]), padding='same'))
 
             if self.batch_norm:
                 layers.append(BatchNorm2d(num_features=self.filters[i]))
@@ -102,7 +109,13 @@ class UTime(nn.Module, Model):
 
         # Last block without maxpooling
         layers.append(nn.Dropout(self.dropout))
-        layers.append(nn.Conv2d(self.filters[-2], self.filters[-1], kernel_size=(min(self.kernels[-1], self.nb_channels_spectro[-1]), self.kernels[-1]),
+        if self.nb_channels_spectro[-1] < self.kernels[-1]:
+            kernel_size = (self.nb_channels_spectro[-1] - 1) // 2 * 2 + 1
+            '''This gives the closest smaller odd number (if nb_channels_spectro is odd, the value is kept, 
+            otherwise it gives nb_channels_spectro-1'''
+        else:
+            kernel_size = self.kernels[-1]
+        layers.append(nn.Conv2d(self.filters[-2], self.filters[-1], kernel_size=(kernel_size, self.kernels[-1]),
                                 padding='same'))
         if self.batch_norm:
             layers.append(BatchNorm2d(num_features=self.filters[-1]))
