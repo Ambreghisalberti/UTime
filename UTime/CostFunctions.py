@@ -1,22 +1,26 @@
 import torch
 import torch.nn.functional as F
 
-
-class WeightedBCE(torch.nn.Module):
+class WeightedLoss():
     def __init__(self, dl):
-        super(WeightedBCE, self).__init__()
+        super(WeightedLoss, self).__init__()
         self.dl = dl
 
         count_BL = 0
         count_all = 0
         for i, X, y in self.dl:
             count_BL += int(y.sum().item())
-            count_all += y.shape[0] * y.shape[1]
+            count_all += y.shape[-1] * y.shape[-2]
         if count_BL == 0:
             raise Exception("There is no BL point in the whole data loader!")
 
         self.weight_BL = count_all / count_BL
         self.weight_not_BL = count_all / (count_all - count_BL)
+
+
+class WeightedBCE(torch.nn.Module, WeightedLoss):
+    def __init__(self, dl):
+        super(WeightedLoss, self).__init__(dl)
 
     def forward(self, input, target):
         weights = target * (self.weight_BL - self.weight_not_BL) + self.weight_not_BL
@@ -27,21 +31,9 @@ class WeightedBCE(torch.nn.Module):
         return loss
 
 
-class WeightedMSE(torch.nn.Module):
+class WeightedMSE(torch.nn.Module, WeightedLoss):
     def __init__(self, dl):
-        super(WeightedMSE, self).__init__()
-        self.dl = dl
-
-        count_BL = 0
-        count_all = 0
-        for i, X, y in self.dl:
-            count_BL += int(y.sum().item())
-            count_all += y.shape[0] * y.shape[1]
-        if count_BL == 0:
-            raise Exception("There is no BL point in the whole data loader!")
-
-        self.weight_BL = count_all / count_BL
-        self.weight_not_BL = count_all / (count_all - count_BL)
+        super(WeightedLoss, self).__init__(dl)
 
     def forward(self, input, target):
         weights = target * (self.weight_BL - self.weight_not_BL) + self.weight_not_BL
@@ -50,6 +42,7 @@ class WeightedMSE(torch.nn.Module):
         # loss = F.cross_entropy(input, target, weight = torch.tensor([self.weight_not_BL,self.weight_BL]))
         loss = torch.mean(weights * (input - target) ** 2)
         return loss
+
 
 class DiceLoss(torch.nn.Module):
 
