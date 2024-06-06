@@ -65,11 +65,11 @@ def train_one_iter(model0, iter, loss_function, dl_train, dl_test, models, train
 
 
     if kwargs.get('plot_ROC', False):
-        training.fit(verbose=False, early_stop=kwargs.pop('early_stop', True), patience=kwargs.pop('patience', 40),
+        training.fit(verbose=kwargs.get('verbose',False), early_stop=kwargs.pop('early_stop', True), patience=kwargs.pop('patience', 40),
                      fig=fig, ax=axes[0], ax_ROC=axes[1], label=True, name=name + f'_iter{iter}', **kwargs)
 
     else:
-        training.fit(verbose=False, early_stop=kwargs.pop('early_stop', True), patience=kwargs.pop('patience', 40),
+        training.fit(verbose=kwargs.get('verbose',False), early_stop=kwargs.pop('early_stop', True), patience=kwargs.pop('patience', 40),
                      fig=fig, ax=axes[0], label=True, name=name + f'_iter{iter}', **kwargs)
     precisions, recalls, F1_scores, FPRs, TPRs, AUCs = add_scores(model, dl_test, precisions, recalls, F1_scores,
                                                                   FPRs, TPRs, AUCs)
