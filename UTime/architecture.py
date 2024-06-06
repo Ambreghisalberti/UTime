@@ -163,16 +163,28 @@ class UTime(nn.Module, Model):
         # Encoder
         encoder_moments_outputs = []
         for i, layer in enumerate(self.encoder):
-            if isinstance(layer, nn.MaxPool2d):
-                encoder_moments_outputs.append(moments)
-            moments = layer(moments)
+            if isinstance(layer, nn.BatchNorm2d):
+                a, b, c, d = moments.shape
+                if c * d > 1:
+                    moments = layer(moments)
+            else:
+                if isinstance(layer, nn.MaxPool2d):
+                    encoder_moments_outputs.append(moments)
+                moments = layer(moments)
 
         # Encoder 2D
         encoder_spectro_outputs = []
         for i, layer in enumerate(self.encoder2D):
-            if isinstance(layer, nn.MaxPool2d):
-                encoder_spectro_outputs.append(spectro)
-            spectro = layer(spectro)
+            if isinstance(layer, nn.BatchNorm2d):
+                a, b, c, d = spectro.shape
+                if c * d > 1:
+                    spectro = layer(spectro)
+            else:
+                if isinstance(layer, nn.MaxPool2d):
+                    encoder_spectro_outputs.append(spectro)
+
+                spectro = layer(spectro)
+
         # Squish spectro encoder output in 1D
         ''' These following lines ensure that if there are still several channels in the spectro, 
         it will be transformed into something of the same shape as the moments results, to be concatenated'''
@@ -184,7 +196,12 @@ class UTime(nn.Module, Model):
         x = torch.cat([spectro, moments], dim=1).double()
         # This version is only for the case where common encoder is just one convolution, not keeping encoding!
         for layer in self.common_encoder:
-            x = layer(x)
+            if isinstance(layer, nn.BatchNorm2d):
+                a, b, c, d = x.shape
+                if c * d > 1:
+                    x = layer(x)
+            else:
+                x = layer(x)
 
         # Decoder with skip connections
         for i, layer in enumerate(self.decoder):
