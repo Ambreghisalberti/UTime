@@ -105,7 +105,7 @@ class UTime(nn.Module, Model):
 
             layers.append(nn.MaxPool2d(kernel_size=(min(self.poolings[i], self.nb_channels_spectro[-1]),self.poolings[i])))
 
-            self.nb_channels_spectro.append(int(self.nb_channels_spectro[-1] // min(self.poolings[i], self.nb_channels_spectro[-1]))
+            self.nb_channels_spectro.append(int(self.nb_channels_spectro[-1] // min(self.poolings[i], self.nb_channels_spectro[-1])))
 
         # Last block without maxpooling
         layers.append(nn.Dropout(self.dropout))
