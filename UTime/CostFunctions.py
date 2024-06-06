@@ -1,6 +1,12 @@
 import torch
 import torch.nn.functional as F
 
+def size_tensor(tensor):
+    size=1
+    for dim in tensor.size():
+        size *= dim
+    return size
+
 class WeightedLoss(torch.nn.Module):
     def __init__(self, dl):
         super(WeightedLoss, self).__init__()
@@ -10,7 +16,7 @@ class WeightedLoss(torch.nn.Module):
         count_all = 0
         for i, X, y in self.dl:
             count_BL += int(y.sum().item())
-            count_all += y.shape[-1] * y.shape[-2]
+            count_all += size_tensor(y)
         if count_BL == 0:
             raise Exception("There is no BL point in the whole data loader!")
 
@@ -19,9 +25,7 @@ class WeightedLoss(torch.nn.Module):
 
 
 class WeightedBCE(WeightedLoss):
-    '''def __init__(self, dl):
-        super(WeightedBCE, self).__init__(dl)
-'''
+
     def forward(self, input, target):
         weights = target * (self.weight_BL - self.weight_not_BL) + self.weight_not_BL
         # gives an array of same dimension as target, with value weight_not_BL for not BL points,
@@ -32,9 +36,7 @@ class WeightedBCE(WeightedLoss):
 
 
 class WeightedMSE(WeightedLoss):
-    '''def __init__(self, dl):
-        super(WeightedMSE, self).__init__(dl)
-'''
+
     def forward(self, input, target):
         weights = target * (self.weight_BL - self.weight_not_BL) + self.weight_not_BL
         # gives an array of same dimension as target, with value weight_not_BL for not BL points,
