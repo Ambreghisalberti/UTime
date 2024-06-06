@@ -36,7 +36,7 @@ class EarlyStopping():
 
         if self.min_loss is None:
             self.save_checkpoint(val_loss, model)
-        elif val_loss > self.min_loss - self.delta:
+        elif val_loss >= self.min_loss - self.delta:
             # Worse or only a little better. If delta = 0, only worse cases are considered
             self.counter += 1
             if self.verbose:
