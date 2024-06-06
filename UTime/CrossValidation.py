@@ -88,11 +88,11 @@ def get_loss_functions(loss_function, dl_train, dl_test):
     elif loss_function == 'MSE':
         train_loss, test_loss = MSELoss(), MSELoss()
     elif loss_function == 'WeightedMSE':
-        train_loss, test_loss = WeightedMSE(dl=dl_train), WeightedMSE(dl=dl_test)
+        train_loss, test_loss = WeightedMSE(dl_train), WeightedMSE(dl_test)
     elif loss_function == 'BCE':
         train_loss, test_loss = BCELoss(), BCELoss()
     elif loss_function == 'WeightedBCE':
-        train_loss, test_loss = WeightedBCE(dl=dl_train), WeightedBCE(dl=dl_test)
+        train_loss, test_loss = WeightedBCE(dl_train), WeightedBCE(dl_test)
     elif loss_function == 'DiceLoss':
         train_loss, test_loss = DiceLoss(), DiceLoss()
     return train_loss, test_loss
