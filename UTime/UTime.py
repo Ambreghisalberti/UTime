@@ -78,6 +78,7 @@ class UTime(Architecture):
 
         # Decoder with skip connections
         for i, layer in enumerate(self.decoder):
+            print(i)
             print(layer)
             if isinstance(layer, nn.BatchNorm2d):
                 x = self.apply_batchnorm(x, layer)

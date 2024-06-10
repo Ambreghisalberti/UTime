@@ -135,6 +135,7 @@ class Architecture(nn.Module, Model):
     def forward_encoder(self, x, encoder):
         encoder_outputs = []
         for i, layer in enumerate(encoder):
+            print(i)
             print(layer)
             if isinstance(layer, nn.BatchNorm2d):
                 x = self.apply_batchnorm(x, layer)
