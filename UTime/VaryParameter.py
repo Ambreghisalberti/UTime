@@ -49,11 +49,11 @@ def write_file(text, path):
 
 def vary_parameter(windows, **kwargs):
     plt.ion()
-    depth = kwargs.get('depth', 6)
-    kernel_size = kwargs.get('kernel_size', 5)
-    nb_filters = kwargs.get('nb_filters', 16)
-    test_proportion = kwargs.get('test_proportion', 0.2)
-    loss_function = kwargs.get('loss_function', 'MSE')
+    depth = kwargs.pop('depth', 6)
+    kernel_size = kwargs.pop('kernel_size', 5)
+    nb_filters = kwargs.pop('nb_filters', 16)
+    test_proportion = kwargs.pop('test_proportion', 0.2)
+    loss_function = kwargs.pop('loss_function', 'MSE')
     if 'description' in kwargs:
         description = '_' + kwargs['description']
     else:
