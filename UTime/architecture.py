@@ -15,8 +15,7 @@ class Architecture(nn.Module, Model):
                  poolings,
                  **kwargs):
 
-        super(nn.Module, self).__init__()
-        super(Model, self).__init__()
+        super(Architecture, self).__init__()
 
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
