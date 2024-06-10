@@ -73,8 +73,12 @@ class UTime(Architecture):
             else:
                 x = layer(x)
 
+        print(len(encoder_spectro_outputs))
+        print(len(encoder_moments_outputs))
+
         # Decoder with skip connections
         for i, layer in enumerate(self.decoder):
+            print(layer)
             if isinstance(layer, nn.BatchNorm2d):
                 x = self.apply_batchnorm(x, layer)
 

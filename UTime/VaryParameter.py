@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-from .architecture import UTime
+from .UTime import UTime
 from .CrossValidation import cross_validation, write_scores
 import numpy as np
 

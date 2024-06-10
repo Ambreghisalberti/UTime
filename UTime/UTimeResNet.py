@@ -15,7 +15,7 @@ class UTime(Architecture):
                  poolings,
                  **kwargs):
 
-        super(Architecture, self).__init__(n_classes, n_time, nb_moments, nb_channels_spectro, depth,
+        super(UTime, self).__init__(n_classes, n_time, nb_moments, nb_channels_spectro, depth,
                                            filters, kernels, poolings, **kwargs)
         # Encoder layers
         self.encoder = self._build_encoder1D()
