@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.nn import (MaxPool2d, Conv2d, Upsample, BatchNorm2d)
 from UTime.EvaluateAndPred import Model
 from UTime.architecture import Architecture
-class UTime(nn.Module, Model, Architecture):
+class UTime(Architecture):
     def __init__(self, n_classes,
                  n_time,
                  nb_moments,

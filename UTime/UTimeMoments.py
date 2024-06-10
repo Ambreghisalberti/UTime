@@ -5,7 +5,7 @@ from .EvaluateAndPred import Model
 from UTime.architecture import Architecture
 
 
-class UTime(nn.Module, Model, Architecture):
+class UTime(Architecture):
     def __init__(self, n_classes,
                  n_time,
                  nb_moments,
