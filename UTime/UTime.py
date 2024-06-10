@@ -32,13 +32,13 @@ class UTime(Architecture):
         layers = []
         for i in range(self.depth - 1):
 
-            layers.append(self._build_conv_block(i, self.kernels[i], self.kernels[i]))
+            layers += self._build_conv_block(i, self.kernels[i], self.kernels[i])
             new_layers, pooling1, pooling2 = self.add_pooling(i, self.nb_channels_spectro[-1])
-            layers.append(new_layers)
+            layers += new_layers
             self.nb_channels_spectro.append(int(self.nb_channels_spectro[-1] // pooling1))
 
         # Last block without maxpooling
-        layers.append(self._build_conv_block(-1, self.kernels[-1], self.kernels[-1]))
+        layers += self._build_conv_block(-1, self.kernels[-1], self.kernels[-1])
 
         return nn.Sequential(*layers)
 
@@ -69,7 +69,6 @@ class UTime(Architecture):
         for layer in self.common_encoder:
             if isinstance(layer, nn.BatchNorm2d):
                 x = self.apply_batchnorm(x, layer)
-
             else:
                 x = layer(x)
 

@@ -84,24 +84,24 @@ class Architecture(nn.Module, Model):
             layers.append(BatchNorm2d(num_features=self.filters[i]))
         layers.append(nn.ReLU(inplace=True))
 
-        return nn.Sequential(*layers)
+        return layers
 
     def add_pooling(self, i, nb_features):
         layers = []
         pooling1 = self.get_pooling_size(nb_features, self.poolings[i])
         pooling2 = self.get_pooling_size(self.sizes[i], self.poolings[i])
         layers.append(nn.MaxPool2d(kernel_size=(pooling1, pooling2)))
-        return nn.Sequential(*layers), pooling1, pooling2
+        return layers, pooling1, pooling2
 
     def _build_encoder1D(self):
         layers = []
         for i in range(self.depth - 1):
-            layers.append(self._build_conv_block(i, 1, self.kernels[i]))
+            layers += self._build_conv_block(i, 1, self.kernels[i])
             new_layers, pooling1, pooling2 = self.add_pooling(i, 1)
-            layers.append(new_layers)
+            layers += new_layers
             self.sizes.append(int(self.sizes[-1] // pooling2))
 
-        layers.append(self._build_conv_block(-1, 1, self.kernels[-1]))
+        layers += self._build_conv_block(-1, 1, self.kernels[-1])
 
         return nn.Sequential(*layers)
 
