@@ -110,13 +110,22 @@ class UTime(nn.Module, Model):
         # Encoder
         encoder_outputs = []
         for i, layer in enumerate(self.encoder):
-            if isinstance(layer, nn.MaxPool2d):
+            if isinstance(layer, nn.BatchNorm2d):
+                a, b, c, d = x.shape
+                if c * d > 1:
+                    x = layer(x)
+
+            elif isinstance(layer, nn.MaxPool2d):
                 encoder_outputs.append(x)
             x = layer(x)
 
         # Decoder with skip connections
         for i, layer in enumerate(self.decoder):
-            if isinstance(layer, nn.Upsample):
+            if isinstance(layer, nn.BatchNorm2d):
+                a, b, c, d = x.shape
+                if c * d > 1:
+                    x = layer(x)
+            elif isinstance(layer, nn.Upsample):
                 x = layer(x)
                 res_connection = encoder_outputs.pop()
                 x = torch.cat([x, res_connection], dim=1)

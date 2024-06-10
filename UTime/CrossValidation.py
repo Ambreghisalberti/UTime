@@ -13,8 +13,8 @@ import torch
 
 def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
     if 'fig' in kwargs and 'ax' in kwargs:
-        fig = kwargs['fig']
-        axes = kwargs['ax']
+        fig = kwargs.pop('fig')
+        axes = kwargs.pop('ax')
     else:
         fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(6, 3))
 

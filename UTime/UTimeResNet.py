@@ -2,9 +2,10 @@ import torch
 import torch.nn as nn
 from torch.nn import (MaxPool2d, Conv2d, Upsample, BatchNorm2d)
 from UTime.EvaluateAndPred import Model
+from UTime.architecture import get_kernel_size, get_pooling_size, apply_batchnorm
+from UTime.architecture import Architecture
 
-
-class UTime(nn.Module, Model):
+class UTime(nn.Module, Model, UTime):
     def __init__(self, n_classes,
                  n_time,
                  nb_moments,
@@ -44,14 +45,6 @@ class UTime(nn.Module, Model):
 
         self.classifier = self._build_classifier()
 
-    def check_inputs(self):
-        if len(self.poolings) != self.depth - 1:
-            raise Exception("The number of pooling kernel sizes needs to be one less than the network's depth.")
-        if len(self.kernels) != self.depth:
-            raise Exception("The number of convolution kernel sizes needs to be equal to the network's depth.")
-        if len(self.filters) != self.depth:
-            raise Exception("The number of filters needs to be equal to the network's depth, or a single integer.")
-        return None
 
     def _build_encoder1D(self):
         layers = []
@@ -74,9 +67,9 @@ class UTime(nn.Module, Model):
 
                 layers.append(nn.ReLU(inplace=True))
 
-            layers.append(nn.MaxPool2d(kernel_size=(1, self.poolings[i])))
-
-            self.sizes.append(int(self.sizes[-1] // self.poolings[i]))
+            new_layers, pooling1, pooling2 = self.add_pooling(self, i, 1)
+            layers.append(new_layers)
+            self.sizes.append(self.sizes[-1]//pooling2)
 
         layers.append(nn.Conv2d(self.filters[-2], self.filters[-1], kernel_size=(self.kernels[-1], self.kernels[-1]),
                                 padding='same'))
@@ -86,28 +79,24 @@ class UTime(nn.Module, Model):
 
         return nn.Sequential(*layers)
 
+
     def _build_encoder2D(self):
         layers = []
         for i in range(self.depth - 1):
             for iter in range(self.nb_blocks_per_layer):
-                if i == 0:
-                    layers.append(
-                        nn.Conv2d(1, self.filters[i], kernel_size=(min(self.kernels[i], self.nb_channels_spectro[-1]), self.kernels[i]), padding='same'))
-                else:
-                    layers.append(nn.Conv2d(self.filters[i - 1], self.filters[i], kernel_size=(
-                    min(self.kernels[i], self.nb_channels_spectro[-1]), self.kernels[i]), padding='same'))
+                kernel_size1 = get_kernel_size(self.nb_channels_spectro[-1], self.kernels[i])
+                kernel_size2 = get_kernel_size(self.sizes[i] , self.kernels[i])
+                layers.append(self._build_conv_block(i, kernel_size1, kernel_size2))
 
-                if self.batch_norm:
-                    layers.append(BatchNorm2d(num_features=self.filters[i]))
-                layers.append(nn.ReLU(inplace=True))
-
-            layers.append(nn.MaxPool2d(kernel_size=(self.poolings[i], self.poolings[i])))
-
-            self.nb_channels_spectro.append(int(self.nb_channels_spectro[-1] // self.poolings[i]))
+            new_layers, pooling1, pooling2 = self.add_pooling(self, i, self.nb_channels_spectro[-1])
+            layers.append(new_layers)
+            self.nb_channels_spectro.append(int(self.nb_channels_spectro[-1] // pooling1))
 
         # Last block without maxpooling
-        layers.append(nn.Conv2d(self.filters[-2], self.filters[-1], kernel_size=(min(self.kernels[-1], self.nb_channels_spectro[-1]), self.kernels[-1]),
-                                padding='same'))
+        kernel_size1 = min(self.kernels[-1], self.nb_channels_spectro[-1])
+        kernel_size2 = get_kernel_size(self.sizes[i], self.kernels[i])
+        layers.append(self._build_conv_block(-1, kernel_size1, kernel_size2))
+
         if self.batch_norm:
             layers.append(BatchNorm2d(num_features=self.filters[-1]))
         layers.append(nn.ReLU(inplace=True))
@@ -147,9 +136,15 @@ class UTime(nn.Module, Model):
         # Encoder
         encoder_moments_outputs = []
         for i, layer in enumerate(self.encoder):
-            if isinstance(layer, nn.MaxPool2d):
+            if isinstance(layer, nn.BatchNorm2d):
+                a, b, c, d = moments.shape
+                if c * d > 1:
+                    moments = layer(moments)
+
+            elif isinstance(layer, nn.MaxPool2d):
                 encoder_moments_outputs.append(moments)
                 moments = layer(moments)
+
             elif isinstance(layer, nn.Conv2d):
                 residual = moments
                 _,nb,_,_ = residual.shape
@@ -160,19 +155,25 @@ class UTime(nn.Module, Model):
                 if self.batch_norm:
                     norm = BatchNorm2d(num_features=nb2).double().to(self.device)
                     residual = norm(residual)
+
             elif isinstance(layer, nn.ReLU):
                 moments = (layer(moments)+residual)/2
-            elif isinstance(layer, nn.BatchNorm2d):
-                moments = layer(moments)
+
             else:
                 raise Exception("I forgot a kind of possible layer in the Encoder1d")
 
         # Encoder 2D
         encoder_spectro_outputs = []
         for i, layer in enumerate(self.encoder2D):
-            if isinstance(layer, nn.MaxPool2d):
+            if isinstance(layer, nn.BatchNorm2d):
+                a, b, c, d = spectro.shape
+                if c * d > 1:
+                    spectro = layer(spectro)
+
+            elif isinstance(layer, nn.MaxPool2d):
                 encoder_spectro_outputs.append(spectro)
                 spectro = layer(spectro)
+
             elif isinstance(layer, nn.Conv2d):
                 residual = spectro
                 _, nb, _, _ = residual.shape
@@ -183,10 +184,10 @@ class UTime(nn.Module, Model):
                 if self.batch_norm:
                     norm = BatchNorm2d(num_features=nb2).double().to(self.device)
                     residual = norm(residual)
+
             elif isinstance(layer, nn.ReLU):
                 spectro = (layer(spectro) + residual)/2
-            elif isinstance(layer, nn.BatchNorm2d):
-                spectro = layer(spectro)
+
             else:
                 raise Exception("I forgot a kind of possible layer in the Encoder2d")
 
@@ -203,7 +204,12 @@ class UTime(nn.Module, Model):
 
         # Decoder with skip connections
         for i, layer in enumerate(self.decoder):
-            if isinstance(layer, nn.Upsample):
+            if isinstance(layer, nn.BatchNorm2d):
+                a, b, c, d = x.shape
+                if c * d > 1:
+                    x = layer(x)
+
+            elif isinstance(layer, nn.Upsample):
                 x = layer(x)
 
                 res_connection_spectro = encoder_spectro_outputs.pop()
@@ -224,10 +230,10 @@ class UTime(nn.Module, Model):
                 if self.batch_norm:
                     norm = BatchNorm2d(num_features=nb2).double().to(self.device)
                     residual = norm(residual)
+
             elif isinstance(layer, nn.ReLU):
                 x = (layer(x) + residual)/2
-            elif isinstance(layer, nn.BatchNorm2d):
-                x = layer(x)
+
             else:
                 raise Exception("I forgot a kind of possible layer in the Decoder")
 
