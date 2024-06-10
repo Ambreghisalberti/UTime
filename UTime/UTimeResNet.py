@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 from torch.nn import (MaxPool2d, Conv2d, Upsample, BatchNorm2d)
 from UTime.EvaluateAndPred import Model
-from UTime.architecture import get_kernel_size, get_pooling_size, apply_batchnorm
 from UTime.architecture import Architecture
 
 class UTime(nn.Module, Model, Architecture):
@@ -66,8 +65,8 @@ class UTime(nn.Module, Model, Architecture):
         layers = []
         for i in range(self.depth - 1):
             for iter in range(self.nb_blocks_per_layer):
-                kernel_size1 = get_kernel_size(self.nb_channels_spectro[-1], self.kernels[i])
-                kernel_size2 = get_kernel_size(self.sizes[i] , self.kernels[i])
+                kernel_size1 = self.get_kernel_size(self.nb_channels_spectro[-1], self.kernels[i])
+                kernel_size2 = self.get_kernel_size(self.sizes[i] , self.kernels[i])
                 layers.append(self._build_conv_block(i, kernel_size1, kernel_size2))
 
             new_layers, pooling1, pooling2 = self.add_pooling(self, i, self.nb_channels_spectro[-1])
@@ -76,7 +75,7 @@ class UTime(nn.Module, Model, Architecture):
 
         # Last block without maxpooling
         kernel_size1 = min(self.kernels[-1], self.nb_channels_spectro[-1])
-        kernel_size2 = get_kernel_size(self.sizes[i], self.kernels[i])
+        kernel_size2 = self.get_kernel_size(self.sizes[i], self.kernels[i])
         layers.append(self._build_conv_block(-1, kernel_size1, kernel_size2))
 
         if self.batch_norm:
