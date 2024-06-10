@@ -28,18 +28,6 @@ class UTime(nn.Module, Model, Architecture):
         self.classifier = self._build_classifier()
 
 
-    def _build_encoder1D(self):
-        layers = []
-        for i in range(self.depth - 1):
-            layers.append(self._build_conv_block(i, 1, self.kernels[i]))
-            new_layers, pooling1, pooling2 = self.add_pooling(i, 1)
-            layers.append(new_layers)
-            self.sizes.append(int(self.sizes[-1] // pooling2))
-
-        layers.append(self._build_conv_block(-1, 1, self.kernels[-1]))
-
-        return nn.Sequential(*layers)
-
     def _build_encoder2D(self):
         layers = []
         for i in range(self.depth - 1):
@@ -61,58 +49,12 @@ class UTime(nn.Module, Model, Architecture):
         return nn.Sequential(*layers)
 
 
-    def _build_decoder(self):
-        layers = []
-        for i in range(1, self.depth):
-            # layers.append(nn.Upsample(scale_factor=(1,2)))
-            layers.append(nn.Upsample(size=(1, self.sizes[::-1][i])))
-            layers.append(nn.Dropout(self.dropout))
-            layers.append(nn.Conv2d(self.filters[-i] + 2 * self.filters[-i - 1], self.filters[-i - 1],
-                                    kernel_size=(1, self.kernels[-i]), padding='same'))
-            if self.batch_norm:
-                layers.append(BatchNorm2d(num_features=self.filters[-i - 1]))
-            layers.append(nn.ReLU(inplace=True))
-
-        return nn.Sequential(*layers)
-
-    def _build_classifier(self):
-
-        layers = [nn.Dropout(self.dropout), Conv2d(self.filters[0], self.n_classes, kernel_size=(1, 1))]
-        if self.batch_norm:
-            layers.append(BatchNorm2d(num_features=self.n_classes))
-
-        if self.n_classes == 1:
-            layers.append(nn.Sigmoid())
-        else:
-            layers.append(nn.Softmax(dim=1))
-
-        return nn.Sequential(*layers)
-
     def forward(self, x):
         moments, spectro = x
 
-        # Encoder
-        encoder_moments_outputs = []
-        for i, layer in enumerate(self.encoder):
-            if isinstance(layer, nn.BatchNorm2d):
-                moments = self.apply_batchnorm(moments, layer)
-
-            else:
-                if isinstance(layer, nn.MaxPool2d):
-                    encoder_moments_outputs.append(moments)
-                moments = layer(moments)
-
-        # Encoder 2D
-        encoder_spectro_outputs = []
-        for i, layer in enumerate(self.encoder2D):
-            if isinstance(layer, nn.BatchNorm2d):
-                spectro = self.apply_batchnorm(spectro, layer)
-
-            else:
-                if isinstance(layer, nn.MaxPool2d):
-                    encoder_spectro_outputs.append(spectro)
-
-                spectro = layer(spectro)
+        # Encoders
+        moments, encoder_moments_outputs = self.forward_encoder(moments, self.encoder)
+        spectro, encoder_spectro_outputs = self.forward_encoder(spectro, self.encoder2D)
 
         # Squish spectro encoder output in 1D
         ''' These following lines ensure that if there are still several channels in the spectro, 
