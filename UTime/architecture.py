@@ -26,6 +26,7 @@ class Architecture(nn.Module, Model):
         self.poolings = poolings if isinstance(poolings, (list, tuple)) else [poolings] * (self.depth - 1)
         self.kernels = kernels if isinstance(kernels, (list, tuple)) else [kernels] * self.depth
         self.dropout = kwargs.get('dropout', 0)
+        self.nb_blocks_per_layer = kwargs.get('nb_blocks_per_layer', 1)
 
         self.sizes = [n_time]
         self.nb_channels_spectro = [nb_channels_spectro]
@@ -65,7 +66,7 @@ class Architecture(nn.Module, Model):
             x = layer(x)
         return x
 
-    def _build_conv_block(self, i, kernel_size1, kernel_size2):
+    def conv_block(self, i, kernel_size1, kernel_size2):
         layers = []
         layers.append(nn.Dropout(self.dropout))
 
@@ -86,6 +87,12 @@ class Architecture(nn.Module, Model):
 
         return layers
 
+    def _build_conv_block(self, i, size_data1, given_pooling_size1, size_data2, given_pooling_size2):
+        kernel_size1 = self.get_kernel_size(size_data1, given_pooling_size1)
+        kernel_size2 = self.get_kernel_size(size_data2, given_pooling_size2)
+        layers = self.conv_block(i, kernel_size1, kernel_size2)
+        return layers
+
     def add_pooling(self, i, nb_features):
         layers = []
         pooling1 = self.get_pooling_size(nb_features, self.poolings[i])
@@ -96,12 +103,12 @@ class Architecture(nn.Module, Model):
     def _build_encoder1D(self):
         layers = []
         for i in range(self.depth - 1):
-            layers += self._build_conv_block(i, 1, self.kernels[i])
+            layers += self._build_conv_block(i, 1, 1, self.sizes[-1], self.kernels[i])
             new_layers, pooling1, pooling2 = self.add_pooling(i, 1)
             layers += new_layers
             self.sizes.append(int(self.sizes[-1] // pooling2))
 
-        layers += self._build_conv_block(-1, 1, self.kernels[-1])
+        layers += self._build_conv_block(-1, 1, 1, self.sizes[-1], self.kernels[-1])
 
         return nn.Sequential(*layers)
 
@@ -135,8 +142,6 @@ class Architecture(nn.Module, Model):
     def forward_encoder(self, x, encoder):
         encoder_outputs = []
         for i, layer in enumerate(encoder):
-            print(i)
-            print(layer)
             if isinstance(layer, nn.BatchNorm2d):
                 x = self.apply_batchnorm(x, layer)
             else:
