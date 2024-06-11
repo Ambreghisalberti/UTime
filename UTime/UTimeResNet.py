@@ -110,6 +110,9 @@ class UTime(Architecture):
             elif isinstance(layer, nn.ReLU):
                 x = (layer(x) + residual) / 2
 
+            elif isinstance(layer, nn.Dropout):
+                x = layer(x)
+
             else:
                 raise Exception("I forgot a kind of possible layer in the Encoder")
 
@@ -154,6 +157,9 @@ class UTime(Architecture):
 
             elif isinstance(layer, nn.ReLU):
                 x = (layer(x) + residual)/2
+
+            elif isinstance(layer, nn.Dropout):
+                x = layer(x)
 
             else:
                 raise Exception("I forgot a kind of possible layer in the Decoder")
