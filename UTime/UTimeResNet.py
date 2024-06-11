@@ -17,6 +17,7 @@ class UTime(Architecture):
 
         super(UTime, self).__init__(n_classes, n_time, nb_moments, nb_channels_spectro, depth,
                                            filters, kernels, poolings, **kwargs)
+
         # Encoder layers
         self.encoder = self._build_encoder1D()
         self.encoder2D = self._build_encoder2D()
@@ -31,32 +32,13 @@ class UTime(Architecture):
         layers = []
         for i in range(self.depth - 1):
             for iter in range(self.nb_blocks_per_layer):
-                if i == 0:
-                    layers.append(
-                        nn.Conv2d(self.nb_moments, self.filters[i], kernel_size=(1, self.kernels[i]), padding='same'))
-                else:
-                    layers.append(
-                        nn.Conv2d(self.filters[i - 1], self.filters[i], kernel_size=(1, self.kernels[i]), padding='same'))
-                if self.batch_norm:
-                    layers.append(BatchNorm2d(num_features=self.filters[i]))
+                layers += self._build_conv_block(i, 1, 1, self.sizes[-1], self.kernels[i])
 
-                for j in range(self.nb_blocks_per_layer-1):
-                    layers.append(
-                        nn.Conv2d(self.filters[i], self.filters[i], kernel_size=(1, self.kernels[i]), padding='same'))
-                    if self.batch_norm:
-                        layers.append(BatchNorm2d(num_features=self.filters[i]))
-
-                layers.append(nn.ReLU(inplace=True))
-
-            new_layers, pooling1, pooling2 = self.add_pooling(self, i, 1)
-            layers.append(new_layers)
+            new_layers, pooling1, pooling2 = self.add_pooling(i, 1)
+            layers += new_layers
             self.sizes.append(self.sizes[-1]//pooling2)
 
-        layers.append(nn.Conv2d(self.filters[-2], self.filters[-1], kernel_size=(self.kernels[-1], self.kernels[-1]),
-                                padding='same'))
-        if self.batch_norm:
-            layers.append(BatchNorm2d(num_features=self.filters[-1]))
-        layers.append(nn.ReLU(inplace=True))
+        layers += self._build_conv_block(-1, 1, 1, self.sizes[-1], self.kernels[-1])
 
         return nn.Sequential(*layers)
 
@@ -65,18 +47,16 @@ class UTime(Architecture):
         layers = []
         for i in range(self.depth - 1):
             for iter in range(self.nb_blocks_per_layer):
-                kernel_size1 = self.get_kernel_size(self.nb_channels_spectro[-1], self.kernels[i])
-                kernel_size2 = self.get_kernel_size(self.sizes[i] , self.kernels[i])
-                layers.append(self._build_conv_block(i, kernel_size1, kernel_size2))
+                layers += self._build_conv_block(i, self.nb_channels_spectro[-1], self.kernels[i],
+                                                     self.sizes[i], self.kernels[i])
 
-            new_layers, pooling1, pooling2 = self.add_pooling(self, i, self.nb_channels_spectro[-1])
-            layers.append(new_layers)
+            new_layers, pooling1, pooling2 = self.add_pooling(i, self.nb_channels_spectro[-1])
+            layers += new_layers
             self.nb_channels_spectro.append(int(self.nb_channels_spectro[-1] // pooling1))
 
         # Last block without maxpooling
-        kernel_size1 = min(self.kernels[-1], self.nb_channels_spectro[-1])
-        kernel_size2 = self.get_kernel_size(self.sizes[i], self.kernels[i])
-        layers.append(self._build_conv_block(-1, kernel_size1, kernel_size2))
+        layers += self._build_conv_block(-1, self.nb_channels_spectro[-1], self.kernels[-1],
+                                                     self.sizes[-1], self.kernels[-1])
 
         if self.batch_norm:
             layers.append(BatchNorm2d(num_features=self.filters[-1]))
