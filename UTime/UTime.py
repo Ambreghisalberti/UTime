@@ -31,14 +31,15 @@ class UTime(Architecture):
     def _build_encoder2D(self):
         layers = []
         for i in range(self.depth - 1):
-
-            layers += self._build_conv_block(i, self.kernels[i], self.kernels[i])
+            layers += self._build_conv_block(i, self.nb_channels_spectro[i], self.kernels[i],
+                                             self.sizes[i], self.kernels[i])
             new_layers, pooling1, pooling2 = self.add_pooling(i, self.nb_channels_spectro[-1])
             layers += new_layers
             self.nb_channels_spectro.append(int(self.nb_channels_spectro[-1] // pooling1))
 
         # Last block without maxpooling
-        layers += self._build_conv_block(-1, self.kernels[-1], self.kernels[-1])
+        layers += self._build_conv_block(-1, self.nb_channels_spectro[-1], self.kernels[-1],
+                                         self.sizes[-1], self.kernels[-1])
 
         return nn.Sequential(*layers)
 
@@ -48,6 +49,19 @@ class UTime(Architecture):
                      padding='same'))
         return nn.Sequential(*layers)
 
+    def _build_decoder(self):
+        layers = []
+        for i in range(1, self.depth):
+            # layers.append(nn.Upsample(scale_factor=(1,2)))
+            layers.append(nn.Upsample(size=(1, self.sizes[::-1][i])))
+            layers.append(nn.Dropout(self.dropout))
+            layers.append(nn.Conv2d(self.filters[-i] + 2 * self.filters[-i - 1], self.filters[-i - 1],
+                                    kernel_size=(1, self.kernels[-i]), padding='same'))
+            if self.batch_norm:
+                layers.append(BatchNorm2d(num_features=self.filters[-i - 1]))
+            layers.append(nn.ReLU(inplace=True))
+
+        return nn.Sequential(*layers)
 
     def forward(self, x):
         moments, spectro = x
@@ -72,13 +86,8 @@ class UTime(Architecture):
             else:
                 x = layer(x)
 
-        print(len(encoder_spectro_outputs))
-        print(len(encoder_moments_outputs))
-
         # Decoder with skip connections
         for i, layer in enumerate(self.decoder):
-            print(i)
-            print(layer)
             if isinstance(layer, nn.BatchNorm2d):
                 x = self.apply_batchnorm(x, layer)
 

@@ -64,6 +64,7 @@ class UTime(Architecture):
 
         return nn.Sequential(*layers)
 
+
     def _build_decoder(self):
         layers = []
         for i in range(1, self.depth):

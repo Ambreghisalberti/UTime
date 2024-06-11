@@ -23,6 +23,19 @@ class UTime(Architecture):
         self.decoder = self._build_decoder()
         self.classifier = self._build_classifier()
 
+    def _build_decoder(self):
+        layers = []
+        for i in range(1, self.depth):
+            # layers.append(nn.Upsample(scale_factor=(1,2)))
+            layers.append(nn.Upsample(size=(1, self.sizes[::-1][i])))
+            layers.append(nn.Dropout(self.dropout))
+            layers.append(nn.Conv2d(self.filters[-i] + self.filters[-i - 1], self.filters[-i - 1],
+                                    kernel_size=(1, self.kernels[-i]), padding='same'))
+            if self.batch_norm:
+                layers.append(BatchNorm2d(num_features=self.filters[-i - 1]))
+            layers.append(nn.ReLU(inplace=True))
+
+        return nn.Sequential(*layers)
 
     def forward(self, x):
 
