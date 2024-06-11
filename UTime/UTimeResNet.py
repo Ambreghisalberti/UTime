@@ -105,7 +105,7 @@ class UTime(Architecture):
                 x = layer(x)
 
             elif isinstance(layer, nn.Conv2d):
-                x, residual = self.forward_conv(self, x, layer)
+                x, residual = self.forward_conv(x, layer)
 
             elif isinstance(layer, nn.ReLU):
                 x = (layer(x) + residual) / 2
@@ -153,7 +153,7 @@ class UTime(Architecture):
                 x = torch.cat([x, res_connection_spectro, res_connection_moments], dim=1)
 
             elif isinstance(layer, nn.Conv2d):
-                x, residual = self.forward_conv(self, x, layer)
+                x, residual = self.forward_conv(x, layer)
 
             elif isinstance(layer, nn.ReLU):
                 x = (layer(x) + residual)/2
