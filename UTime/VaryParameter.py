@@ -78,16 +78,15 @@ def vary_parameter(windows, **kwargs):
         name = f'depth={d}_filters={nf}_kernel={ks}_{lf}_testsize={test_proportion}' + description
         architecture = UTime(1, windows.win_length, len(windows.moments_features),
                              len(windows.spectro_features), d, nf, ks, 2)
-        precisions, recalls, F1_scores, TPRs, FPRs, AUCs, models = cross_validation(architecture, windows,
+        cv = cross_validation(architecture, windows,
                                                                                     nb_iter, lf,
                                                                                     test_ratio=tp, fig=fig,
                                                                                     ax=axes[i, :],
                                                                                     name=f'{variable} = {value}',
                                                                                     **kwargs)
-        pd.to_pickle(
-            {'models': models, 'precisions': precisions, 'recalls': recalls, 'F1_scores': F1_scores, 'AUCs': AUCs,
-             'TPRs': TPRs, 'FPRs': FPRs},
-            f'/home/ghisalberti/BL_encoder_decoder/model/diagnostics/{name}.pkl')
+        pd.to_pickle(cv,f'/home/ghisalberti/BL_encoder_decoder/model/diagnostics/{name}.pkl')
+        precisions, recalls, F1_scores = cv['precisions'], cv['recalls'], cv['F1_scores']
+        TPRs, FPRs, AUCs = cv['TPRs'], cv['FPRs'], cv['AUCs']
         text, scores = write_scores(text, scores, variable, value, precisions, recalls, F1_scores, AUCs)
 
         print(f'{variable} = {value} done.')

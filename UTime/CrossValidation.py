@@ -48,7 +48,8 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
     if kwargs.get('savefig', False):
         plt.savefig('/home/ghisalberti/BL_encoder_decoder/model/diagnostics/'+name+'_cross_val.png')
 
-    return precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models
+    return {'precisions':precisions, 'recalls':recalls, 'F1_scores':F1_scores,
+            'FPRs': FPRs, 'TPRs':TPRs, 'AUCs':AUCs, 'models':models}
 
 
 def train_one_iter(model0, iter, loss_function, dl_train, dl_test, models, train_losses, val_losses, last_epochs, precisions, recalls, F1_scores,
