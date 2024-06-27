@@ -55,10 +55,12 @@ class AutoEncoder(nn.Module, Model):
         layers = []
         for i in range(1, self.depth):
             layers.append(nn.Conv2d(self.filters[-i], self.filters[-i - 1],
-                                    kernel_size=(self.kernels[i], self.kernels[-i]), padding='same'))
+                                    kernel_size=(self.kernels[-i], self.kernels[-i]), padding='same'))
             layers.append(BatchNorm2d(num_features=self.filters[-i - 1]))
             layers.append(nn.ReLU(inplace=True))
 
+        layers.append(nn.Conv2d(self.filters[-i-1], 1,
+                                kernel_size=(self.kernels[-i], self.kernels[-i]), padding='same'))
 
         return nn.Sequential(*layers)
 
