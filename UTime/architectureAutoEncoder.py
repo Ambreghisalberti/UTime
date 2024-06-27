@@ -73,8 +73,4 @@ class AutoEncoder(nn.Module, Model):
         for i, layer in enumerate(self.decoder):
             x = layer(x)
 
-        # Dense classification
-        for layer in self.classifier:
-            x = layer(x)
-
         return x
