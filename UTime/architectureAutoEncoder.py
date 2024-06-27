@@ -54,7 +54,7 @@ class AutoEncoder(nn.Module, Model):
     def _build_decoder(self):
         layers = []
         for i in range(1, self.depth):
-            layers.append(nn.Conv2d(self.filters[-i] + self.filters[-i - 1], self.filters[-i - 1],
+            layers.append(nn.Conv2d(self.filters[-i], self.filters[-i - 1],
                                     kernel_size=(self.kernels[i], self.kernels[-i]), padding='same'))
             layers.append(BatchNorm2d(num_features=self.filters[-i - 1]))
             layers.append(nn.ReLU(inplace=True))
