@@ -204,7 +204,7 @@ class WindowsMoments(DataForWindows):
         return pred
 
 
-class AUtoEncoderWindows(DataForWindows):
+class AutoEncoderWindows(DataForWindows):
     def __getitem__(self, i):
         subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.moments_features + self.spectro_features + self.label]
 
