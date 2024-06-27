@@ -205,10 +205,9 @@ class WindowsMoments(DataForWindows):
 
 
 class AutoEncoderWindows(DataForWindows):
+     
     def __getitem__(self, i):
-        subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.moments_features + self.spectro_features + self.label]
+        subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.spectro_features + self.label]
+        inputs = torch.tensor(np.transpose(subdf[self.spectro_features].values).reshape((1, len(self.spectro_features),self.win_length))).double()
 
-        spectro = torch.tensor(np.transpose(subdf[self.spectro_features].values).reshape((1, len(self.spectro_features), self.win_length))).double()
-        moments = torch.tensor(np.transpose(subdf[self.moments_features].values).reshape((len(self.moments_features), 1, self.win_length))).double()
-
-        return i, (moments, spectro), (moments, spectro)
+        return i, inputs, inputs
