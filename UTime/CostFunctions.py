@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+import numpy as np
 
 def size_tensor(tensor):
     size=1
@@ -54,3 +55,25 @@ class DiceLoss(torch.nn.Module):
     def forward(self, input, target, epsilon=0.000000001):
         return (1 - (input*target + epsilon).sum()/(input + target + epsilon).sum() -
                 ((1-input)*(1-target) + epsilon).sum())/((1-input) + (1-target) + epsilon).sum()
+
+
+class WeightedByDistanceMP(torch.nn.Module):
+    def __init__(self):
+        super(WeightedByDistanceMP, self).__init__()
+
+    def forward(self, input, target, delta=0.1):
+        # Need to change all the rest to pass on the distance to MP with the inputs, or the i (window id), to make it general.
+        # For now, this cost function can only work if relative distance to MP is given as the last feature of windows,
+        # for input of dimension 4.
+        if isinstance(input, list):
+            moments, sepctro = input
+        assert len(input.shape)==4, ("The input should be a 4D tensor, otherwise our implementation of ponderation "
+                                     "by distance to MP might not give the wanted results.")
+        distances_to_MP = input[:,-1]
+        FN_ponderation = np.exp(-(distances_to_MP/delta)**2)*0.9 + 0.1
+        FP_ponderation = 1 - np.exp(-(distances_to_MP/delta)**2)*0.5
+
+        FN = input*(1-target)
+        FP = (1-input)*target
+
+        return (FN*FN_ponderation + FP*FP_ponderation).mean()

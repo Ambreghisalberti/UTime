@@ -202,3 +202,13 @@ class WindowsMoments(DataForWindows):
         pred['predicted_class'] = pred.pred.values > threshold
 
         return pred
+
+
+class AUtoEncoderWindows(DataForWindows):
+    def __getitem__(self, i):
+        subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.moments_features + self.spectro_features + self.label]
+
+        spectro = torch.tensor(np.transpose(subdf[self.spectro_features].values).reshape((1, len(self.spectro_features), self.win_length))).double()
+        moments = torch.tensor(np.transpose(subdf[self.moments_features].values).reshape((len(self.moments_features), 1, self.win_length))).double()
+
+        return i, (moments, spectro), (moments, spectro)
