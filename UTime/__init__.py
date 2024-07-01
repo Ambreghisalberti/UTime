@@ -40,7 +40,7 @@ class DataForWindows(Dataset):
         self.labelled_condition = kwargs.get('labelled_condition', ['isLabelled'])
         self.dataset = select_windows(self.dataset, self.labelled_condition + self.conditions)
         indices_windows = np.ones(len(self.dataset))
-        for condition in self.conditions+self.label:
+        for condition in self.conditions+self.labelled_condition:
             indices_windows = np.logical_and(indices_windows, self.dataset[condition].values)
         self.windows_indices = np.arange(len(self.dataset))[indices_windows]
 
