@@ -10,6 +10,7 @@ class DataForWindows(Dataset):
 
     def __init__(self, all_data, position, omni_data, win_duration, moments_features = [], spectro_features = [],
                  label = ['label'], **kwargs):
+        self.win_duration = win_duration
         self.win_length = durationToNbrPts(win_duration, time_resolution(all_data))
         self.moments_features = moments_features
         self.spectro_features = spectro_features
@@ -29,16 +30,27 @@ class DataForWindows(Dataset):
 
         self.dataset = pd.concat([self.df, self.omni], axis = 1)
         self.conditions = kwargs.get('conditions',['isDayside', 'isFull', 'encountersMSPandMSH'])
-        self.all_dataset = select_windows(self.dataset, self.conditions)
+        conditions = [condition+'_select' for condition in self.conditions]
+        self.all_dataset = select_windows(self.dataset, conditions)
+        indices_windows = np.ones(len(self.all_dataset))
+        for condition in self.conditions:
+            indices_windows = np.logical_and(indices_windows, self.all_dataset[condition].values)
+        self.all_windows_indices = np.arange(len(self.all_dataset))[indices_windows]
+
         self.labelled_condition = kwargs.get('labelled_condition', ['isLabelled'])
         self.dataset = select_windows(self.dataset, self.labelled_condition + self.conditions)
+        indices_windows = np.ones(len(self.dataset))
+        for condition in self.conditions+self.labelled_conditions:
+            indices_windows = np.logical_and(indices_windows, self.dataset[condition].values)
+        self.windows_indices = np.arange(len(self.dataset))[indices_windows]
 
         self.spectro_normalization_method = kwargs.get('spectro_normalization', 'per_channel')
         self.normalize(self.spectro_normalization_method)
 
 
     def __len__(self):
-        return len(self.dataset) // self.win_length
+        #return len(self.dataset) // self.win_length
+        return len(self.windows_indices)
 
     def normalize_per_channel(self, features, df, **kwargs):
         if len(features)>0:
@@ -94,23 +106,25 @@ class DataForWindows(Dataset):
 
 class Windows(DataForWindows):
 
-    def __getitem__(self, i):
+    def __getitem__(self, indice):
+        i = self.windows_indices[indice]
         subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.moments_features + self.spectro_features + self.label]
 
         spectro = torch.tensor(np.transpose(subdf[self.spectro_features].values).reshape((1, len(self.spectro_features), self.win_length))).double()
         moments = torch.tensor(np.transpose(subdf[self.moments_features].values).reshape((len(self.moments_features), 1, self.win_length))).double()
         labels = torch.tensor(np.transpose(subdf[self.label].values).reshape((len(self.label), 1, self.win_length))).double()
-        times = subdf.index.values
 
-        return i, (moments, spectro), labels
+        return indice, (moments, spectro), labels
 
     def all_pred(self, model, threshold=0.5):
-        nbrWindows = nbr_windows(self.all_dataset, self.win_length)
+        #nbrWindows = nbr_windows(self.all_dataset, self.win_length)
+        nbrWindows = len(self.all_windows_indices)
         pred = pd.DataFrame(-1.0 * np.arange(len(self.all_dataset)), index=self.all_dataset.index.values,
                             columns=['pred'])
         print(f"Number of windows = {nbrWindows}.")
 
-        for i in range(nbrWindows):
+        for count in range(nbrWindows):
+            i = self.all_windows_indices[count]
             device = 'cuda' if torch.cuda.is_available() else 'cpu'
             moments = self.all_dataset.iloc[i * self.win_length: (i + 1) * self.win_length][self.moments_features]
             moments = torch.tensor(
@@ -123,8 +137,8 @@ class Windows(DataForWindows):
 
             pred.iloc[i * self.win_length: (i + 1) * self.win_length, -1] = torch.Tensor.cpu(model.forward(
                 (moments, spectro)).flatten()).detach().numpy()
-            if i % (nbrWindows // 10) == 0:
-                print(f"{round(i / nbrWindows * 100, 2)}% of windows predicted.")
+            if count % (nbrWindows // 10) == 0:
+                print(f"{round(count / nbrWindows * 100, 2)}% of windows predicted.")
 
         pred['predicted_class'] = pred.pred.values > threshold
 
@@ -134,7 +148,8 @@ class Windows(DataForWindows):
 
 class WindowsSpectro2D(DataForWindows):
 
-    def __getitem__(self, i):
+    def __getitem__(self, indice):
+        i = self.windows_indices[indice]
         subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.spectro_features + self.label]
 
         #labels = subdf[self.label].values
@@ -145,16 +160,18 @@ class WindowsSpectro2D(DataForWindows):
         inputs = torch.tensor(np.transpose(subdf[self.spectro_features].values).reshape((1, len(self.spectro_features),self.win_length))).double()
         labels = torch.tensor(np.transpose(subdf[self.label].values).reshape((len(self.label), 1, self.win_length))).double()
 
-        times = subdf.index.values
-        return i, inputs, labels
+        return indice, inputs, labels
 
     def all_pred(self, model, threshold=0.5):
-        nbrWindows = nbr_windows(self.all_dataset, self.win_length)
+        #nbrWindows = nbr_windows(self.all_dataset, self.win_length)
+        nbrWindows = len(self.all_windows_indices)
+
         pred = pd.DataFrame(-1.0 * np.arange(len(self.all_dataset)), index=self.all_dataset.index.values,
                             columns=['pred'])
         print(f"Number of windows = {nbrWindows}.")
 
-        for i in range(nbrWindows):
+        for count in range(nbrWindows):
+            i = self.all_windows_indices[count]
             device = 'cuda' if torch.cuda.is_available() else 'cpu'
             spectro = self.all_dataset.iloc[i * self.win_length: (i + 1) * self.win_length][self.spectro_features]
             spectro = torch.tensor(
@@ -163,8 +180,8 @@ class WindowsSpectro2D(DataForWindows):
 
             pred.iloc[i * self.win_length: (i + 1) * self.win_length, -1] = torch.Tensor.cpu(model.forward(
                 spectro).flatten()).detach().numpy()
-            if i % (nbrWindows // 10) == 0:
-                print(f"{round(i / nbrWindows * 100, 2)}% of windows predicted.")
+            if count % (nbrWindows // 10) == 0:
+                print(f"{round(count / nbrWindows * 100, 2)}% of windows predicted.")
 
         pred['predicted_class'] = pred.pred.values > threshold
 
@@ -173,21 +190,26 @@ class WindowsSpectro2D(DataForWindows):
 
 class WindowsMoments(DataForWindows):
 
-    def __getitem__(self, i):
+    def __getitem__(self, indice):
+        i = self.windows_indices[indice]
+
         subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.moments_features + self.label]
 
         inputs = torch.tensor(np.transpose(subdf[self.moments_features].values).reshape((len(self.moments_features),1,self.win_length))).double()
         labels = torch.tensor(np.transpose(subdf[self.label].values).reshape((len(self.label), 1, self.win_length))).double()
-        times = subdf.index.values
-        return i, inputs, labels
+
+        return indice, inputs, labels
 
     def all_pred(self, model, threshold=0.5):
-        nbrWindows = nbr_windows(self.all_dataset, self.win_length)
+        #nbrWindows = nbr_windows(self.all_dataset, self.win_length)
+        nbrWindows = len(self.all_windows_indices)
+
         pred = pd.DataFrame(-1.0 * np.arange(len(self.all_dataset)), index=self.all_dataset.index.values,
                             columns=['pred'])
         print(f"Number of windows = {nbrWindows}.")
 
-        for i in range(nbrWindows):
+        for count in range(nbrWindows):
+            i = self.all_windows_indices[count]
             device = 'cuda' if torch.cuda.is_available() else 'cpu'
             moments = self.all_dataset.iloc[i * self.win_length: (i + 1) * self.win_length][self.moments_features]
             moments = torch.tensor(
@@ -196,8 +218,8 @@ class WindowsMoments(DataForWindows):
 
             pred.iloc[i * self.win_length: (i + 1) * self.win_length, -1] = torch.Tensor.cpu(model.forward(
                 moments).flatten()).detach().numpy()
-            if i % (nbrWindows // 10) == 0:
-                print(f"{round(i / nbrWindows * 100, 2)}% of windows predicted.")
+            if count % (nbrWindows // 10) == 0:
+                print(f"{round(count / nbrWindows * 100, 2)}% of windows predicted.")
 
         pred['predicted_class'] = pred.pred.values > threshold
 
@@ -206,8 +228,9 @@ class WindowsMoments(DataForWindows):
 
 class AutoEncoderWindows(DataForWindows):
 
-    def __getitem__(self, i):
+    def __getitem__(self, indice):
+        i = self.windows_indices[indice]
         subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.spectro_features + self.label]
         inputs = torch.tensor(np.transpose(subdf[self.spectro_features].values).reshape((1, len(self.spectro_features),self.win_length))).double()
 
-        return i, inputs, inputs
+        return indice, inputs, inputs
