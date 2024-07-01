@@ -20,7 +20,7 @@ class DataForWindows(Dataset):
         is_prepared = kwargs.get('is_prepared', False)
         if is_prepared:
             self.df, self.pos, self.omni = all_data, position, omni_data
-        else:labelled_conditions
+        else:
             label_paths = kwargs["label_paths"]
             labelled_days = kwargs["labelled_days"]
             self.df, self.pos, self.omni = prepare_df(all_data, position, omni_data, win_duration, label_paths,
