@@ -20,7 +20,7 @@ class DataForWindows(Dataset):
         is_prepared = kwargs.get('is_prepared', False)
         if is_prepared:
             self.df, self.pos, self.omni = all_data, position, omni_data
-        else:
+        else:labelled_conditions
             label_paths = kwargs["label_paths"]
             labelled_days = kwargs["labelled_days"]
             self.df, self.pos, self.omni = prepare_df(all_data, position, omni_data, win_duration, label_paths,
@@ -40,7 +40,7 @@ class DataForWindows(Dataset):
         self.labelled_condition = kwargs.get('labelled_condition', ['isLabelled'])
         self.dataset = select_windows(self.dataset, self.labelled_condition + self.conditions)
         indices_windows = np.ones(len(self.dataset))
-        for condition in self.conditions+self.labelled_conditions:
+        for condition in self.conditions+self.label:
             indices_windows = np.logical_and(indices_windows, self.dataset[condition].values)
         self.windows_indices = np.arange(len(self.dataset))[indices_windows]
 
