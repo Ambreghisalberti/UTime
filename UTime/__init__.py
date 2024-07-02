@@ -30,15 +30,16 @@ class DataForWindows(Dataset):
 
         self.dataset = pd.concat([self.df, self.omni], axis = 1)
         self.conditions = kwargs.get('conditions',['isDayside', 'isFull', 'encountersMSPandMSH'])
-        conditions = [condition+'_select' for condition in self.conditions]
-        self.all_dataset = select_windows(self.dataset, conditions)
+        conditions_select = [condition+'_select' for condition in self.conditions]
+        self.all_dataset = select_windows(self.dataset, conditions_select)
         indices_windows = np.ones(len(self.all_dataset))
         for condition in self.conditions:
             indices_windows = np.logical_and(indices_windows, self.all_dataset[condition].values)
         self.all_windows_indices = np.arange(len(self.all_dataset))[indices_windows]
 
         self.labelled_condition = kwargs.get('labelled_condition', ['isLabelled'])
-        self.dataset = select_windows(self.dataset, self.labelled_condition + self.conditions)
+        labelled_conditions_select = [condition+'_select' for condition in self.labelled_condition]
+        self.dataset = select_windows(self.dataset, labelled_conditions_select + conditions_select)
         indices_windows = np.ones(len(self.dataset))
         for condition in self.conditions+self.labelled_condition:
             indices_windows = np.logical_and(indices_windows, self.dataset[condition].values)
