@@ -26,7 +26,7 @@ class UTime(Architecture):
         # Decoder layers
         self.decoder = self._build_decoder()
 
-        self.classifier = self._build_classifier()
+        self.classifiers = [self._build_classifier(nb_classes_classifier=1) for i in range(n_classes)]
 
 
     def _build_encoder2D(self):
@@ -107,31 +107,12 @@ class UTime(Architecture):
                 x = layer(x)
 
         # Dense classification
-        for layer in self.classifier:
-            x = layer(x)
+        outs = []
+        for classifier in self.classifiers:
+            out = x
+            for layer in classifier:
+                out = layer(out)
+            outs.append(out)
+        outs = torch(outs)
 
-        return x
-
-    def compute_receptive_field(self):
-        further_point = 0
-        for i,layer in enumerate(self.encoder):
-            if isinstance(layer, nn.Conv2d):
-                further_point += (self.kernels[i]-1)//2
-            if isinstance(layer, nn.MaxPool2d):
-                field *= self.poolings[i]
-
-        field2d = 1
-        for i,layer in enumerate(self.encoder2D):
-            if isinstance(layer, nn.Conv2d):
-                field2d *= self.kernels[i]
-            if isinstance(layer, nn.MaxPool2d):
-                field2d *= self.poolings[i]
-
-        assert field==field2d, ("The encoder1D and encoder2D are supposed to have the same receptive fields, "
-                                "a computation error might have occurred.")
-
-        for i,layer in enumerate(self.decoder):
-            if isinstance(layer, nn.Conv2d):
-                field2d *= self.kernels[i]
-            if isinstance(layer, nn.MaxPool2d):
-                field2d *= self.poolings[i]
+        return outs

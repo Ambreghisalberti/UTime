@@ -66,7 +66,7 @@ class Architecture(nn.Module, Model):
             x = layer(x)
         return x
 
-    def conv_block(self, i, kernel_size1, kernel_size2):
+    def conv_block(self, i, kernel_size1, kernel_size2, **kwargs):
         layers = []
         layers.append(nn.Dropout(self.dropout))
 
@@ -74,7 +74,7 @@ class Architecture(nn.Module, Model):
             if kernel_size1 == 1:  # We are working on moments
                 input_size = self.nb_moments
             else:
-                input_size = 1
+                input_size = kwargs.get('nb_in_channels',1)
             layers.append(
                 nn.Conv2d(input_size, self.filters[i], kernel_size=(kernel_size1, kernel_size2), padding='same'))
         else:
@@ -113,13 +113,14 @@ class Architecture(nn.Module, Model):
         return nn.Sequential(*layers)
 
 
-    def _build_classifier(self):
+    def _build_classifier(self, **kwargs):
+        nb_classes = kwargs('nb_classes_classifier',self.n_classes)
+        layers = [nn.Dropout(self.dropout), Conv2d(self.filters[0], nb_classes, kernel_size=(1, 1))]
 
-        layers = [nn.Dropout(self.dropout), Conv2d(self.filters[0], self.n_classes, kernel_size=(1, 1))]
         if self.batch_norm:
-            layers.append(BatchNorm2d(num_features=self.n_classes))
+            layers.append(BatchNorm2d(num_features=nb_classes))
 
-        if self.n_classes == 1:
+        if nb_classes == 1:
             layers.append(nn.Sigmoid())
         else:
             layers.append(nn.Softmax(dim=1))
