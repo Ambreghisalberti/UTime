@@ -26,7 +26,7 @@ class UTime(Architecture):
         # Decoder layers
         self.decoder = self._build_decoder()
 
-        self.classifiers = [self._build_classifier(nb_classes_classifier=1) for i in range(n_classes)]
+        self.classifiers = [self._build_classifier(nb_classes_classifier=1).double() for i in range(n_classes)]
 
 
     def _build_encoder2D(self):
