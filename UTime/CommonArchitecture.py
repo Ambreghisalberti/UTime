@@ -21,6 +21,7 @@ class Architecture(nn.Module, Model):
 
         self.depth = depth
         self.n_classes = n_classes
+        self.label_names=kwargs.get('label_names',['label_BL'])
         self.n_time = n_time
         self.filters = filters if isinstance(filters, list) else [int(filters * 2 ** i) for i in range(self.depth)]
         self.poolings = poolings if isinstance(poolings, (list, tuple)) else [poolings] * (self.depth - 1)
