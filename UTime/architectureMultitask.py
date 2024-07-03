@@ -113,6 +113,6 @@ class UTime(Architecture):
             for layer in classifier:
                 out = layer(out)
             outs.append(out)
-        outs = torch(outs)
+        outs = torch.tensor(outs)
 
         return outs
