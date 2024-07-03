@@ -105,7 +105,7 @@ def get_loss_functions(loss_function, dl_train, dl_test):
 
 def make_dataloaders(windows, **kwargs):
     stride = windows.stride
-    if stride == windows.win_length:
+    if stride >= windows.win_length:
         return make_dataloaders_without_stride(windows, **kwargs)
     else:
         return make_dataloaders_with_stride(windows, **kwargs)

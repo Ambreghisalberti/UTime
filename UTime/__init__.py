@@ -12,6 +12,7 @@ class DataForWindows(Dataset):
                  label = ['label_BL'], **kwargs):
         self.win_duration = win_duration
         self.win_length = durationToNbrPts(win_duration, time_resolution(all_data))
+        self.stride = kwargs.get('stride',self.win_length)
         self.moments_features = moments_features
         self.spectro_features = spectro_features
         self.ml_features = self.moments_features + self.spectro_features
