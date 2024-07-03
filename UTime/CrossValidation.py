@@ -13,6 +13,7 @@ import torch
 import random as rd
 from datetime import timedelta
 import pandas as pd
+from copy import copy
 
 def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
     if 'fig' in kwargs and 'ax' in kwargs:
@@ -22,8 +23,10 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
         fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(6, 3))
 
     architecture = architecture.double()
+    empty_scores = {f"{architecture.label_names[i].split('_')[1]}":[] for i in range(len(architecture.label))}
     precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models, train_losses, val_losses, last_epochs = (
-        [], [], [], [], [], [], [], [], [], [])
+        copy(empty_scores), copy(empty_scores), copy(empty_scores), copy(empty_scores), copy(empty_scores),
+        copy(empty_scores), copy(empty_scores), copy(empty_scores), copy(empty_scores), copy(empty_scores))
     name = kwargs.pop('name', str(datetime.now())[:10])
 
     for iter in range(nb_iter):
@@ -76,8 +79,7 @@ def train_one_iter(model0, iter, loss_function, dl_train, dl_test, models, train
     else:
         training.fit(verbose=kwargs.pop('verbose',False), early_stop=kwargs.pop('early_stop', True), patience=kwargs.pop('patience', 40),
                      fig=fig, ax=axes[0], label=True, name=name + f'_iter{iter}', **kwargs)
-    precisions, recalls, F1_scores, FPRs, TPRs, AUCs = add_scores(model, dl_test, precisions, recalls, F1_scores,
-                                                                  FPRs, TPRs, AUCs)
+    precisions, recalls, F1_scores, FPRs, TPRs, AUCs = add_scores(model, dl_test, precisions, recalls, F1_scores, FPRs, TPRs, AUCs)
     models.append(training.model.to('cpu'))
     train_losses.append(list(torch.Tensor(training.training_loss).numpy()))
     val_losses.append(list(torch.Tensor(training.val_loss).numpy()))
@@ -159,17 +161,35 @@ def make_dataloaders_with_stride(windows, **kwargs):
 
 
 def add_scores(model, dl, precisions, recalls, F1_scores, FPRs, TPRs, AUCs):
-    p, r, F1 = model.scores(dl=dl)
-    FPR, TPR = model.ROC(dl=dl, verbose=False)
-    AUC = auc(FPR, TPR)
+    n_classes = model.n_classes
+    pred, target = model.compute_pred_and_target(dl)
+    if n_classes == 1:
+        pred = [pred]
+        target = [target]
+    for i in range(n_classes):
+        pred_i = pred[i]
+        target_i = target[i]
 
-    precisions.append(p)
-    recalls.append(r)
-    F1_scores.append(F1)
-    TPRs.append(TPR)
-    FPRs.append(FPR)
-    AUCs.append(AUC)
+        p, r, F1 = model.scores(pred=pred_i, target=target_i)
+        FPR, TPR = model.ROC(pred=pred_i, target=target_i, verbose=False)
+        AUC = auc(FPR, TPR)
+        name_class = model.label_names[i].split('_')[1]
 
+        precisions[name_class] = precisions[name_class]+[p]
+        recalls[name_class] = recalls[name_class]+[r]
+        F1_scores[name_class] = F1_scores[name_class]+[F1]
+        TPRs[name_class] = TPRs[name_class]+[TPR]
+        FPRs[name_class] = FPRs[name_class]+[FPR]
+        AUCs[name_class] = AUCs[name_class]+[AUC]
+
+        '''
+        precisions.append(p)
+        recalls.append(r)
+        F1_scores.append(F1)
+        TPRs.append(TPR)
+        FPRs.append(FPR)
+        AUCs.append(AUC)
+        '''
     return precisions, recalls, F1_scores, FPRs, TPRs, AUCs
 
 def plot_mean(reference_x, x_list, y_list, **kwargs):

@@ -197,16 +197,27 @@ class Training():
         ax.legend(loc='upper center', bbox_to_anchor = (0.5, -0.2), fancybox=True, shadow=True)
 
         if 'ax_ROC' in kwargs:
-            FPR, TPR = self.model.ROC(dl=self.dltest, verbose=False)
             ax = kwargs['ax_ROC']
             ax.cla()
-            ax.scatter(FPR, TPR, s=0.1)
+            n_classes = self.model.n_classes
+            pred, target = self.model.compute_pred_and_target(self.dltest)
+            title = 'ROC'
+            if n_classes==1:
+                pred=[pred]
+                target=[target]
+            for i in range(n_classes):
+                pred_i = pred[i]
+                target_i = target[i]
+                FPR, TPR = self.model.ROC(pred=pred_i, target=target_i, verbose=False)
+                name_class = self.model.label_names[i].split('_')[1]
+                ax.scatter(FPR, TPR, s=0.1, label=name_class)
+                title += f', AUC {name_class} = {round(auc(FPR, TPR),3)}'
+            ax.set_title(title)
+            ax.plot(np.linspace(0,1,100),np.linspace(0,1,100),linestyle='--', alpha=0.5,
+                        color='grey')
             ax.set_xlabel('FPR')
             ax.set_ylabel('TPR')
-            ax.set_title(f'ROC, AUC = {round(auc(FPR, TPR),3)}')
-            ax.plot(np.linspace(0,1,100),np.linspace(0,1,100),linestyle='--', alpha=0.5,
-                    color='grey')
-
+            ax.legend()
         plt.tight_layout()
         plt.draw()
         if self.make_movie:

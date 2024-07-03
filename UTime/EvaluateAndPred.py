@@ -71,6 +71,8 @@ class Model():
 
     def confusion_matrix(self, threshold=0.5, **kwargs):
         if 'dl' in kwargs:
+            if 'dl' not in kwargs:
+                raise Exception("Either pred and target must be given to ROC, or dl.")
             dl = kwargs.get('dl')
             pred, target = self.compute_pred_and_target(dl)
         else:
@@ -142,6 +144,7 @@ class Model():
         else:
             pred, target = kwargs['pred'], kwargs['target']
 
+
         TPR = []
         FPR = []
         thresholds = np.linspace(0, 1, 1000)
@@ -168,8 +171,12 @@ class Model():
 
         return FPR, TPR
 
-    def find_best_threshold(self, dl, **kwargs):
-        pred, target = self.compute_pred_and_target(dl)
+    def find_best_threshold(self, **kwargs):
+        if 'pred' not in kwargs or 'target' not in kwargs:
+            dl = kwargs.get('dl')
+            pred, target = self.compute_pred_and_target(dl)
+        else:
+            pred, target = kwargs['pred'], kwargs['target']
 
         F1_scores = []
         thresholds = np.linspace(0, 1, 1000)
