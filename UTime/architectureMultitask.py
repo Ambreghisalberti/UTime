@@ -102,7 +102,7 @@ class UTime(Architecture):
                 res_connection_spectro = res_connection_spectro.reshape((a, b, 1, c))
                 res_connection_moments = encoder_moments_outputs.pop()
 
-                x = torch.cat([x, res_connection_spectro, res_connection_moments], dim=1).double().to(self.device)
+                x = torch.cat([x, res_connection_spectro, res_connection_moments], dim=1).double()
 
             else:
                 x = layer(x)
@@ -113,6 +113,6 @@ class UTime(Architecture):
             out = x
             for layer in classifier:
                 out = layer(out)
-            outs = torch.cat((outs, out)).double().to(self.device)
+            outs = torch.cat((outs, out)).double()
 
         return outs
