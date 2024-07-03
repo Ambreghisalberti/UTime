@@ -108,7 +108,7 @@ class UTime(Architecture):
                 x = layer(x)
 
         # Dense classification
-        outs = torch.Tensor([])
+        outs = torch.Tensor([]).double().to(self.device)
         for classifier in self.classifiers:
             out = x
             for layer in classifier:
