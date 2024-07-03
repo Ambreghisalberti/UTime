@@ -9,7 +9,7 @@ from sklearn.preprocessing import StandardScaler
 class DataForWindows(Dataset):
 
     def __init__(self, all_data, position, omni_data, win_duration, moments_features = [], spectro_features = [],
-                 label = ['label'], **kwargs):
+                 label = ['label_BL'], **kwargs):
         self.win_duration = win_duration
         self.win_length = durationToNbrPts(win_duration, time_resolution(all_data))
         self.moments_features = moments_features
@@ -109,7 +109,8 @@ class Windows(DataForWindows):
 
     def __getitem__(self, indice):
         i = self.windows_indices[indice]
-        subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.moments_features + self.spectro_features + self.label]
+        #subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.moments_features + self.spectro_features + self.label]
+        subdf = self.dataset.iloc[i - self.win_length + 1:i + 1][self.moments_features + self.spectro_features + self.label]
 
         spectro = torch.tensor(np.transpose(subdf[self.spectro_features].values).reshape((1, len(self.spectro_features), self.win_length))).double()
         moments = torch.tensor(np.transpose(subdf[self.moments_features].values).reshape((len(self.moments_features), 1, self.win_length))).double()
@@ -151,7 +152,9 @@ class WindowsSpectro2D(DataForWindows):
 
     def __getitem__(self, indice):
         i = self.windows_indices[indice]
-        subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.spectro_features + self.label]
+        subdf = self.dataset.iloc[i - self.win_length + 1:i + 1][self.moments_features + self.spectro_features + self.label]
+
+        #subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.spectro_features + self.label]
 
         #labels = subdf[self.label].values
         #subdf.drop(self.label, axis=1, inplace=True)
@@ -193,8 +196,9 @@ class WindowsMoments(DataForWindows):
 
     def __getitem__(self, indice):
         i = self.windows_indices[indice]
+        subdf = self.dataset.iloc[i - self.win_length + 1:i + 1][self.moments_features + self.spectro_features + self.label]
 
-        subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.moments_features + self.label]
+        #subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.moments_features + self.label]
 
         inputs = torch.tensor(np.transpose(subdf[self.moments_features].values).reshape((len(self.moments_features),1,self.win_length))).double()
         labels = torch.tensor(np.transpose(subdf[self.label].values).reshape((len(self.label), 1, self.win_length))).double()
@@ -231,7 +235,9 @@ class AutoEncoderWindows(DataForWindows):
 
     def __getitem__(self, indice):
         i = self.windows_indices[indice]
-        subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.spectro_features + self.label]
+        subdf = self.dataset.iloc[i - self.win_length + 1:i + 1][self.moments_features + self.spectro_features + self.label]
+
+        #subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.spectro_features + self.label]
         inputs = torch.tensor(np.transpose(subdf[self.spectro_features].values).reshape((1, len(self.spectro_features),self.win_length))).double()
 
         return indice, inputs, inputs
@@ -240,7 +246,9 @@ class AutoEncoderWindows(DataForWindows):
 class WindowsEntangledMomentsSpectro(DataForWindows):
     def __getitem__(self, indice):
         i = self.windows_indices[indice]
-        subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.moments_features + self.spectro_features + self.label]
+        subdf = self.dataset.iloc[i - self.win_length + 1:i + 1][self.moments_features + self.spectro_features + self.label]
+
+        #subdf = self.dataset.iloc[i * self.win_length : (i+1) * self.win_length][self.moments_features + self.spectro_features + self.label]
 
         spectro = torch.tensor(np.transpose(subdf[self.spectro_features].values).reshape((1, len(self.spectro_features), self.win_length))).double()
         moments = torch.tensor(np.transpose(subdf[self.moments_features].values).reshape((len(self.moments_features), 1, self.win_length))).double()
