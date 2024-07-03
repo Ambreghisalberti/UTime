@@ -3,6 +3,7 @@ import torch.nn as nn
 from torch.nn import (MaxPool2d, Conv2d, Upsample, BatchNorm2d)
 from UTime.EvaluateAndPred import Model
 from UTime.CommonArchitecture import Architecture
+import numpy as np
 
 class UTime(Architecture):
     def __init__(self, n_classes,
@@ -113,6 +114,6 @@ class UTime(Architecture):
             for layer in classifier:
                 out = layer(out)
             outs.append(out)
-        outs = torch.tensor(outs)
+        outs = torch.tensor(np.array(outs))
 
         return outs
