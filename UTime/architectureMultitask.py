@@ -32,7 +32,7 @@ class UTime(Architecture):
     def _build_encoder2D(self):
         layers = []
         for i in range(self.depth - 1):
-            layers = self._build_conv_block(i, self.nb_channels_spectro[i], self.kernels[i], self.sizes[i],
+            layers += self._build_conv_block(i, self.nb_channels_spectro[i], self.kernels[i], self.sizes[i],
                                            self.kernels[i])
             new_layers, pooling1, pooling2 = self.add_pooling(i, self.nb_channels_spectro[-1])
             layers += new_layers
