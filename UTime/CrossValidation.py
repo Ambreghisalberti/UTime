@@ -10,6 +10,9 @@ from .Training import Training
 from IPython import display
 from datetime import datetime
 import torch
+import random as rd
+from datetime import timedelta
+import pandas as pd
 
 def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
     if 'fig' in kwargs and 'ax' in kwargs:
@@ -100,10 +103,58 @@ def get_loss_functions(loss_function, dl_train, dl_test):
     return train_loss, test_loss
 
 
-def make_dataloaders(windows, test_ratio=0.2, batch_size=10):
+def make_dataloaders(windows, **kwargs):
+    stride = windows.stride
+    if stride == windows.win_length:
+        return make_dataloaders_without_stride(windows, **kwargs)
+    else:
+        return make_dataloaders_with_stride(windows, **kwargs)
+
+
+def make_dataloaders_without_stride(windows, test_ratio=0.2, batch_size=10, **kwargs):
     train, test = random_split(windows, [1 - test_ratio, test_ratio])
     dl_train = DataLoader(train, batch_size=batch_size, shuffle=True)
     dl_test = DataLoader(test, shuffle=True)
+    return dl_train, dl_test
+
+
+def make_windows_groups(windows, interval=timedelta(days=1)):
+    all_start, all_stop = windows.dataset.index.values[0], windows.dataset.index.values[-1]
+    starts_intervals = pd.date_range(start=all_start, end=all_stop, freq=interval)
+    stops_intervals = starts_intervals + interval
+
+    windows.dataset['nbr_window'] = 0
+    windows.dataset.iloc[windows.windows_indices, -1] = 1
+    windows.dataset['nbr_window'] = windows.dataset['nbr_window'].values.cumsum() * windows.dataset['nbr_window']
+
+    groups = []
+    for i, (start, stop) in enumerate(zip(starts_intervals, stops_intervals)):
+        subdf = windows.dataset.loc[start:stop]
+        windows_stops = subdf.index.values[subdf['nbr_window'].values != 0]
+        windows_starts = windows_stops - windows.win_duration
+        group = list(subdf.loc[windows_stops, 'nbr_window'].values[windows_starts >= start] - 1)
+        if len(group) > 1:
+            groups.append(group)
+
+    test = np.array([values for x in groups for values in x])
+    assert np.max(test) < len(windows), "The maximum numero is too high compared to the number of windows!"
+
+    return groups
+
+
+def make_dataloaders_with_stride(windows, **kwargs):
+    groups = make_windows_groups(windows, **kwargs)
+    rd.shuffle(groups)
+
+    test_ratio = kwargs.get('test_ratio', 0.2)
+    train_groups = groups[:-int(len(groups) * test_ratio)]
+    train_indices = [t for tx in train_groups for t in tx]
+    test_groups = groups[-int(len(groups) * test_ratio):]
+    test_indices = [t for tx in test_groups for t in tx]
+
+    dl_train = DataLoader([windows[i] for i in train_indices], batch_size=kwargs.get('batch_size', 10), shuffle=True)
+    dl_test = DataLoader([windows[i] for i in test_indices], shuffle=True)
+
     return dl_train, dl_test
 
 
