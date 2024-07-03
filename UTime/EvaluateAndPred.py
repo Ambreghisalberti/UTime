@@ -150,8 +150,8 @@ class Model():
         thresholds = np.linspace(0, 1, 1000)
         for threshold in thresholds:
             [[TP,FN],[FP,TN]] = self.confusion_matrix(prediction=pred, target=target, threshold=threshold, verbose=False)
-            TPR.append(TP / (TP + FN))
-            FPR.append(FP / (FP + TN))
+            TPR.append(TP / (TP + FN) if TP+FN > 0 else np.nan)
+            FPR.append(FP / (FP + TN) if FP+TN > 0 else np.nan)
 
         if verbose:
             plt.figure()
