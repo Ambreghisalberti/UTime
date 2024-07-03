@@ -108,12 +108,11 @@ class UTime(Architecture):
                 x = layer(x)
 
         # Dense classification
-        outs = []
+        outs = torch.Tensor([])
         for classifier in self.classifiers:
             out = x
             for layer in classifier:
                 out = layer(out)
-            outs.append(torch.Tensor.cpu(out))
-        outs = torch.tensor(np.array(outs))
+            outs = torch.cat((outs, out))
 
         return outs
