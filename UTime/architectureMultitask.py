@@ -113,8 +113,7 @@ class UTime(Architecture):
             out = x
             for layer in classifier:
                 out = layer(out)
-            outs.append(out)
-        outs = torch.Tensor.cpu(outs)
+            outs.append(torch.Tensor.cpu(out))
         outs = torch.tensor(np.array(outs))
 
-        return outs.to(self.device)
+        return outs
