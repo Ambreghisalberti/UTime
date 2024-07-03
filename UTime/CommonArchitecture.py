@@ -114,7 +114,7 @@ class Architecture(nn.Module, Model):
 
 
     def _build_classifier(self, **kwargs):
-        nb_classes = kwargs('nb_classes_classifier',self.n_classes)
+        nb_classes = kwargs.get('nb_classes_classifier',self.n_classes)
         layers = [nn.Dropout(self.dropout), Conv2d(self.filters[0], nb_classes, kernel_size=(1, 1))]
 
         if self.batch_norm:
