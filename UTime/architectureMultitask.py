@@ -114,5 +114,5 @@ class UTime(Architecture):
             for layer in classifier:
                 out = layer(out)
             outs = torch.cat((outs, out.unsqueeze_(0))).double()
-
+        outs = outs.squeeze_(2).transpose(0,1)
         return outs
