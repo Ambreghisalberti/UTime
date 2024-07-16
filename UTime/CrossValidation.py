@@ -15,8 +15,8 @@ from datetime import timedelta
 import pandas as pd
 
 
-def initialize_empty_scores(architecture, nbr_scores):
-    return ({f"{architecture.label_names[i].split('_')[1]}": [] for i in range(len(architecture.label_names))} for i in range(nbr_scores))
+def initialize_empty_scores(windows, nbr_scores):
+    return ({f"{windows.label[i].split('_')[1]}": [] for i in range(len(windows.label))} for i in range(nbr_scores))
 
 
 def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
@@ -28,7 +28,7 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
 
     architecture = architecture.double()
     precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models, train_losses, val_losses, last_epochs = (
-        initialize_empty_scores(architecture, 10))
+        initialize_empty_scores(windows, 10))
     name = kwargs.pop('name', str(datetime.now())[:10])
 
     for iter in range(nb_iter):

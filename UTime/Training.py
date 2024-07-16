@@ -46,6 +46,11 @@ class Training():
         self.name = kwargs.get('name', str(datetime.now())[:10])
         self.make_movie = kwargs.get('make_movie', False)
 
+        if 'label_names' in model.__dict__.keys():
+            self.label_names = model.label_names
+        else:
+            self.label_names = kwargs.get('label_names', ['label_BL'])
+
     def backward_propagation(self, batch, labels):
         if isinstance(batch, tuple):
             a,b = batch
@@ -210,7 +215,7 @@ class Training():
                 print(pred_i.shape)
                 target_i = target[i]
                 FPR, TPR = self.model.ROC(pred=pred_i, target=target_i, verbose=False)
-                name_class = self.model.label_names[i].split('_')[1]
+                name_class = self.label_names[i].split('_')[1]
                 ax.scatter(FPR, TPR, s=0.1, label=name_class)
                 title += f', AUC {name_class} = {round(auc(FPR, TPR),3)}'
             ax.set_title(title)
