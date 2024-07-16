@@ -20,7 +20,7 @@ class UTime(Architecture):
 
         # Encoder layers
         self.encoder = self._build_encoder1D()
-        self.encoder2D = self._build_encoder2D()
+        self.encoder2D = self._build_encoder2D(**kwargs)
 
         # Decoder layers
         self.decoder = self._build_decoder()
@@ -43,12 +43,12 @@ class UTime(Architecture):
         return nn.Sequential(*layers)
 
 
-    def _build_encoder2D(self):
+    def _build_encoder2D(self, **kwargs):
         layers = []
         for i in range(self.depth - 1):
             for iter in range(self.nb_blocks_per_layer):
                 layers += self._build_conv_block(i, self.nb_channels[-1], self.kernels[i],
-                                                 self.sizes[i], self.kernels[i])
+                                                 self.sizes[i], self.kernels[i], **kwargs)
 
             new_layers, pooling1, pooling2 = self.add_pooling(i, self.nb_channels[-1])
             layers += new_layers
@@ -56,7 +56,7 @@ class UTime(Architecture):
 
         # Last block without maxpooling
         layers += self._build_conv_block(-1, self.nb_channels[-1], self.kernels[-1],
-                                         self.sizes[-1], self.kernels[-1])
+                                         self.sizes[-1], self.kernels[-1], **kwargs)
 
         if self.batch_norm:
             layers.append(BatchNorm2d(num_features=self.filters[-1]))

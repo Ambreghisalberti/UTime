@@ -74,7 +74,7 @@ class Architecture(nn.Module, Model):
             if kernel_size1 == 1:  # We are working on moments
                 input_size = self.nb_moments
             else:
-                input_size = kwargs.get('nb_in_channels',1)
+                input_size = kwargs.get('nb_channels_in',1)
             layers.append(
                 nn.Conv2d(input_size, self.filters[i], kernel_size=(kernel_size1, kernel_size2), padding='same'))
         else:
@@ -87,10 +87,10 @@ class Architecture(nn.Module, Model):
 
         return layers
 
-    def _build_conv_block(self, i, size_data1, given_pooling_size1, size_data2, given_pooling_size2):
+    def _build_conv_block(self, i, size_data1, given_pooling_size1, size_data2, given_pooling_size2, **kwargs):
         kernel_size1 = self.get_kernel_size(size_data1, given_pooling_size1)
         kernel_size2 = self.get_kernel_size(size_data2, given_pooling_size2)
-        layers = self.conv_block(i, kernel_size1, kernel_size2)
+        layers = self.conv_block(i, kernel_size1, kernel_size2, **kwargs)
         return layers
 
     def add_pooling(self, i, nb_features):

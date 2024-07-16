@@ -2,9 +2,10 @@ import torch
 import torch.nn as nn
 from torch.nn import (MaxPool2d, Conv2d, Upsample, BatchNorm2d)
 from UTime.CommonArchitecture import Architecture
+from UTime.architectureResNet import UTime as UTimeResNet
 
 
-class UTime(Architecture):
+class UTime(UTimeResNet):
     def __init__(self, n_classes,
                  n_time,
                  nb_channels,
@@ -16,7 +17,7 @@ class UTime(Architecture):
         super(UTime, self).__init__(n_classes, n_time, 0, nb_channels,
                  depth, filters, kernels, poolings, **kwargs)
 
-
+        '''
         # Encoder layers
         nb_channels_in = kwargs.get('nb_channels_in', 1)
         # (This allows to give several 2D inputs (more than just the spectro))
@@ -67,6 +68,7 @@ class UTime(Architecture):
         # layers.append(nn.ReLU(inplace=True))
 
         return nn.Sequential(*layers)
+    '''
 
     def _build_decoder(self):
         layers = []
@@ -96,6 +98,8 @@ class UTime(Architecture):
 
         return nn.Sequential(*layers)
 
+
+    '''
     def forward(self, x):
         # Encoder
         encoder_outputs = []
@@ -117,6 +121,48 @@ class UTime(Architecture):
 
             else:
                 x = layer(x)
+
+        # Dense classification
+        for layer in self.classifier:
+            x = layer(x)
+
+        return x
+        '''
+
+    def forward(self, x):
+        # Encoder
+        x, encoder_outputs = self.forward_encoder(x, self.encoder2D)
+        x = torch.mean(x, dim=2)
+        a, b, c = x.shape
+        x = x.reshape((a, b, 1, c))
+
+        # Decoder with skip connections
+        for i, layer in enumerate(self.decoder):
+            if isinstance(layer, nn.BatchNorm2d):
+                x = self.apply_batchnorm(x, layer)
+
+            elif isinstance(layer, nn.Upsample):
+                x = layer(x)
+
+                res_connection = encoder_outputs.pop()
+                res_connection = torch.mean(res_connection, dim=2)
+                a, b, c = res_connection.shape
+                res_connection = res_connection.reshape((a, b, 1, c))
+
+                x = torch.cat([x, res_connection], dim=1)
+
+            elif isinstance(layer, nn.Conv2d):
+                x, residual = self.forward_conv(x, layer)
+
+            elif isinstance(layer, nn.ReLU):
+                x = (layer(x) + residual)/2
+
+            elif isinstance(layer, nn.Dropout):
+                x = layer(x)
+
+            else:
+                raise Exception("I forgot a kind of possible layer in the Decoder")
+
 
         # Dense classification
         for layer in self.classifier:
