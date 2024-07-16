@@ -50,14 +50,14 @@ class UTime(Architecture):
     def _build_encoder2D(self, kernel_size):
         layers = []
         for i in range(self.depth - 1):
-            layers = self._build_conv_block(i, self.nb_channels_spectro[i], kernel_size, self.sizes[i],
-                                           kernel_size)
-            new_layers, pooling1, pooling2 = self.add_pooling(i, self.nb_channels_spectro[-1])
+            layers = self._build_conv_block(i, self.nb_channels[i], kernel_size, self.sizes[i],
+                                            kernel_size)
+            new_layers, pooling1, pooling2 = self.add_pooling(i, self.nb_channels[-1])
             layers += new_layers
-            self.nb_channels_spectro.append(int(self.nb_channels_spectro[-1] // pooling1))
+            self.nb_channels.append(int(self.nb_channels[-1] // pooling1))
 
         # Last block without maxpooling
-        layers += self._build_conv_block(-1, self.nb_channels_spectro[-1], kernel_size,
+        layers += self._build_conv_block(-1, self.nb_channels[-1], kernel_size,
                                          self.sizes[-1], kernel_size)
 
         return nn.Sequential(*layers)

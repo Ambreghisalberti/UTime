@@ -1,10 +1,10 @@
 import torch
 import torch.nn as nn
 from torch.nn import (MaxPool2d, Conv2d, Upsample, BatchNorm2d)
-from UTime.EvaluateAndPred import Model
+from UTime.CommonArchitecture import Architecture
 
 
-class UTime(nn.Module, Model):
+class UTime(Architecture):
     def __init__(self, n_classes,
                  n_time,
                  nb_channels,
@@ -13,19 +13,9 @@ class UTime(nn.Module, Model):
                  kernels,
                  poolings, **kwargs):
 
-        super().__init__()
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        super(UTime, self).__init__(n_classes, n_time, 0, nb_channels,
+                 depth, filters, kernels, poolings, **kwargs)
 
-        self.depth = depth
-        self.n_classes = n_classes
-        self.n_time = n_time
-        self.filters = filters if isinstance(filters, list) else [int(filters * 2 ** i) for i in range(self.depth)]
-        self.poolings = poolings if isinstance(poolings, (list, tuple)) else [poolings] * (self.depth - 1)
-        self.kernels = kernels if isinstance(kernels, (list, tuple)) else [kernels] * self.depth
-
-        self.sizes = [n_time]
-        self.nb_channels = [nb_channels]
-        self.check_inputs()
 
         # Encoder layers
         nb_channels_in = kwargs.get('nb_channels_in', 1)
@@ -37,15 +27,6 @@ class UTime(nn.Module, Model):
         # print(self.decoder)
 
         self.classifier = self._build_classifier()
-
-    def check_inputs(self):
-        if len(self.poolings) != self.depth - 1:
-            raise Exception("The number of pooling kernel sizes needs to be one less than the network's depth.")
-        if len(self.kernels) != self.depth:
-            raise Exception("The number of convolution kernel sizes needs to be equal to the network's depth.")
-        if len(self.filters) != self.depth:
-            raise Exception("The number of filters needs to be equal to the network's depth, or a single integer.")
-        return None
 
     def _build_encoder(self, nb_channels_in):
         layers = []

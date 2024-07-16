@@ -30,12 +30,10 @@ class Architecture(nn.Module, Model):
         self.nb_blocks_per_layer = kwargs.get('nb_blocks_per_layer', 1)   # Make it used for all architectures
 
         self.sizes = [n_time]
-        self.nb_channels_spectro = [nb_channels_spectro]
+        self.nb_channels = [nb_channels_spectro]
         self.nb_moments = nb_moments
         self.check_inputs()
         self.batch_norm = kwargs.get('batch_norm', True)
-
-        self.label_names = kwargs.get('label_names', ['label_BL'])
 
 
     def check_inputs(self):
