@@ -35,13 +35,14 @@ class Architecture(nn.Module, Model):
         self.check_inputs()
         self.batch_norm = kwargs.get('batch_norm', True)
 
+        self.label_names = kwargs.get('label_names', ['label_BL'])
 
 
     def check_inputs(self):
         if len(self.poolings) != self.depth - 1:
             raise Exception("The number of pooling kernel sizes needs to be one less than the network's depth.")
-        if len(self.kernels) != self.depth:
-            raise Exception("The number of convolution kernel sizes needs to be equal to the network's depth.")
+        #if len(self.kernels) != self.depth:
+        #    raise Exception("The number of convolution kernel sizes needs to be equal to the network's depth.")
         if len(self.filters) != self.depth:
             raise Exception("The number of filters needs to be equal to the network's depth, or a single integer.")
         return None
