@@ -172,7 +172,7 @@ def add_scores(model, dl, precisions, recalls, F1_scores, FPRs, TPRs, AUCs):
         pred_i = pred[i]
         target_i = target[i]
 
-        p, r, F1 = model.scores(pred=pred_i, target=target_i)
+        p, r, F1 = model.scores(prediction=pred_i, target=target_i)
         FPR, TPR = model.ROC(pred=pred_i, target=target_i, verbose=False)
         AUC = auc(FPR, TPR)
         name_class = model.label_names[i].split('_')[1]

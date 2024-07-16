@@ -207,6 +207,7 @@ class Training():
                 target=[target]
             for i in range(n_classes):
                 pred_i = pred[i]
+                print(pred_i.shape)
                 target_i = target[i]
                 FPR, TPR = self.model.ROC(pred=pred_i, target=target_i, verbose=False)
                 name_class = self.model.label_names[i].split('_')[1]
