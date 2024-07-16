@@ -11,7 +11,7 @@ class UTime(nn.Module, Model):
                  depth,
                  filters,
                  kernels,
-                 poolings):
+                 poolings, **kwargs):
 
         super().__init__()
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -28,7 +28,9 @@ class UTime(nn.Module, Model):
         self.check_inputs()
 
         # Encoder layers
-        self.encoder = self._build_encoder()
+        nb_channels_in = kwargs.get('nb_channels_in', 1)
+        # (This allows to give several 2D inputs (more than just the spectro))
+        self.encoder = self._build_encoder(nb_channels_in)
         # print(self.encoder)
         # Decoder layers
         self.decoder = self._build_decoder()
@@ -45,12 +47,12 @@ class UTime(nn.Module, Model):
             raise Exception("The number of filters needs to be equal to the network's depth, or a single integer.")
         return None
 
-    def _build_encoder(self):
+    def _build_encoder(self, nb_channels_in):
         layers = []
         for i in range(self.depth - 1):
             if i == 0:
                 layers.append(
-                    nn.Conv2d(1, self.filters[i], kernel_size=(min(self.kernels[i], self.nb_channels[-1]), self.kernels[i]), padding='same'))
+                    nn.Conv2d(nb_channels_in, self.filters[i], kernel_size=(min(self.kernels[i], self.nb_channels[-1]), self.kernels[i]), padding='same'))
             else:
                 # print(f'Layer {i}: {self.filters[i-1]} -> {self.filters[i]}, kernels = {self.kernels[i]}')
                 layers.append(nn.Conv2d(self.filters[i - 1], self.filters[i],
