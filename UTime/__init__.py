@@ -119,34 +119,37 @@ class Windows(DataForWindows):
 
         return indice, (moments, spectro), labels
 
+
     def all_pred(self, model, threshold=0.5):
-        #nbrWindows = nbr_windows(self.all_dataset, self.win_length)
         nbrWindows = len(self.all_windows_indices)
-        pred = pd.DataFrame(-1.0 * np.arange(len(self.all_dataset)), index=self.all_dataset.index.values,
-                            columns=['pred'])
+        pred = pd.DataFrame(np.zeros((len(self.all_dataset),2)), index=self.all_dataset.index.values,
+                            columns=['pred_sum', 'pred_count'])
         print(f"Number of windows = {nbrWindows}.")
 
         for count in range(nbrWindows):
             i = self.all_windows_indices[count]
             device = 'cuda' if torch.cuda.is_available() else 'cpu'
-            moments = self.all_dataset.iloc[i * self.win_length: (i + 1) * self.win_length][self.moments_features]
+            moments = self.all_dataset.iloc[i - self.win_length + 1 : i+1][self.moments_features]
             moments = torch.tensor(
                 np.transpose(moments.values).reshape((1, len(self.moments_features), 1, self.win_length))).double().to(
                 device)
-            spectro = self.all_dataset.iloc[i * self.win_length: (i + 1) * self.win_length][self.spectro_features]
+            spectro = self.all_dataset.iloc[i - self.win_length + 1 : i+1][self.spectro_features]
             spectro = torch.tensor(
                 np.transpose(spectro.values).reshape((1, 1, len(self.spectro_features), self.win_length))).double().to(
                 device)
 
-            pred.iloc[i * self.win_length: (i + 1) * self.win_length, -1] = torch.Tensor.cpu(model.forward(
-                (moments, spectro)).flatten()).detach().numpy()
+            pred.iloc[i - self.win_length + 1 : i+1, -2] = (pred.iloc[i - self.win_length + 1 : i+1, -2].values +
+                    torch.Tensor.cpu(model.forward((moments, spectro)).flatten()).detach().numpy())
+
+            pred.iloc[i - self.win_length + 1 : i+1, -1] = pred.iloc[i - self.win_length + 1 : i+1, -1].values + 1
+
             if count % (nbrWindows // 10) == 0:
                 print(f"{round(count / nbrWindows * 100, 2)}% of windows predicted.")
 
+        pred['pred'] = pred['pred_sum'].values / pred['pred_count'].values
         pred['predicted_class'] = pred.pred.values > threshold
 
         return pred
-
 
 
 class WindowsSpectro2D(DataForWindows):
@@ -168,26 +171,28 @@ class WindowsSpectro2D(DataForWindows):
         return indice, inputs, labels
 
     def all_pred(self, model, threshold=0.5):
-        #nbrWindows = nbr_windows(self.all_dataset, self.win_length)
         nbrWindows = len(self.all_windows_indices)
-
-        pred = pd.DataFrame(-1.0 * np.arange(len(self.all_dataset)), index=self.all_dataset.index.values,
-                            columns=['pred'])
+        pred = pd.DataFrame(np.zeros((len(self.all_dataset), 2)), index=self.all_dataset.index.values,
+                            columns=['pred_sum', 'pred_count'])
         print(f"Number of windows = {nbrWindows}.")
 
         for count in range(nbrWindows):
             i = self.all_windows_indices[count]
             device = 'cuda' if torch.cuda.is_available() else 'cpu'
-            spectro = self.all_dataset.iloc[i * self.win_length: (i + 1) * self.win_length][self.spectro_features]
+            spectro = self.all_dataset.iloc[i - self.win_length + 1: i + 1][self.spectro_features]
             spectro = torch.tensor(
                 np.transpose(spectro.values).reshape((1, 1, len(self.spectro_features), self.win_length))).double().to(
                 device)
 
-            pred.iloc[i * self.win_length: (i + 1) * self.win_length, -1] = torch.Tensor.cpu(model.forward(
-                spectro).flatten()).detach().numpy()
+            pred.iloc[i - self.win_length + 1: i + 1, -2] = (pred.iloc[i - self.win_length + 1: i + 1, -2].values +
+                                                             torch.Tensor.cpu(model.forward(spectro).flatten()).detach().numpy())
+
+            pred.iloc[i - self.win_length + 1: i + 1, -1] = pred.iloc[i - self.win_length + 1: i + 1, -1].values + 1
+
             if count % (nbrWindows // 10) == 0:
                 print(f"{round(count / nbrWindows * 100, 2)}% of windows predicted.")
 
+        pred['pred'] = pred['pred_sum'].values / pred['pred_count'].values
         pred['predicted_class'] = pred.pred.values > threshold
 
         return pred
@@ -207,26 +212,29 @@ class WindowsMoments(DataForWindows):
         return indice, inputs, labels
 
     def all_pred(self, model, threshold=0.5):
-        #nbrWindows = nbr_windows(self.all_dataset, self.win_length)
         nbrWindows = len(self.all_windows_indices)
-
-        pred = pd.DataFrame(-1.0 * np.arange(len(self.all_dataset)), index=self.all_dataset.index.values,
-                            columns=['pred'])
+        pred = pd.DataFrame(np.zeros((len(self.all_dataset), 2)), index=self.all_dataset.index.values,
+                            columns=['pred_sum', 'pred_count'])
         print(f"Number of windows = {nbrWindows}.")
 
         for count in range(nbrWindows):
             i = self.all_windows_indices[count]
             device = 'cuda' if torch.cuda.is_available() else 'cpu'
-            moments = self.all_dataset.iloc[i * self.win_length: (i + 1) * self.win_length][self.moments_features]
+            moments = self.all_dataset.iloc[i - self.win_length + 1: i + 1, -1][self.moments_features]
             moments = torch.tensor(
                 np.transpose(moments.values).reshape((1, len(self.moments_features), 1, self.win_length))).double().to(
                 device)
 
-            pred.iloc[i * self.win_length: (i + 1) * self.win_length, -1] = torch.Tensor.cpu(model.forward(
-                moments).flatten()).detach().numpy()
+            pred.iloc[i - self.win_length + 1: i + 1, -2] = (pred.iloc[i - self.win_length + 1: i + 1, -2].values +
+                                                             torch.Tensor.cpu(
+                                                                 model.forward(moments).flatten()).detach().numpy())
+
+            pred.iloc[i - self.win_length + 1: i + 1, -1] = pred.iloc[i - self.win_length + 1: i + 1, -1].values + 1
+
             if count % (nbrWindows // 10) == 0:
                 print(f"{round(count / nbrWindows * 100, 2)}% of windows predicted.")
 
+        pred['pred'] = pred['pred_sum'].values / pred['pred_count'].values
         pred['predicted_class'] = pred.pred.values > threshold
 
         return pred
