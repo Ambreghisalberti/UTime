@@ -45,13 +45,15 @@ class Architecture(nn.Module, Model):
             raise Exception("The number of filters needs to be equal to the network's depth, or a single integer.")
         return None
 
-    def get_kernel_size(self,size_data, given_kernel_size):
+    def get_kernel_size(self, size_data, given_kernel_size):
         if size_data < given_kernel_size:
             kernel_size = (size_data - 1) // 2 * 2 + 1
             '''This gives the closest smaller odd number (if nb_channels_spectro is odd, the value is kept, 
             otherwise it gives nb_channels_spectro-1'''
         else:
             kernel_size = given_kernel_size
+
+        assert kernel_size >= 1, "kernel size must be strictly greater than 0"
         return kernel_size
 
     def get_pooling_size(self, size_data, given_pooling_size):
@@ -90,6 +92,7 @@ class Architecture(nn.Module, Model):
     def _build_conv_block(self, i, size_data1, given_pooling_size1, size_data2, given_pooling_size2, **kwargs):
         kernel_size1 = self.get_kernel_size(size_data1, given_pooling_size1)
         kernel_size2 = self.get_kernel_size(size_data2, given_pooling_size2)
+
         layers = self.conv_block(i, kernel_size1, kernel_size2, **kwargs)
         return layers
 
@@ -101,11 +104,14 @@ class Architecture(nn.Module, Model):
         return layers, pooling1, pooling2
 
     def _build_encoder1D(self):
+        self.sizes = [self.n_time]
         layers = []
         for i in range(self.depth - 1):
             layers += self._build_conv_block(i, 1, 1, self.sizes[-1], self.kernels[i])
             new_layers, pooling1, pooling2 = self.add_pooling(i, 1)
             layers += new_layers
+            new_size = int(self.sizes[-1] // pooling2)
+            assert new_size > 0, "There was too much maxpooling, there is no data left"
             self.sizes.append(int(self.sizes[-1] // pooling2))
 
         layers += self._build_conv_block(-1, 1, 1, self.sizes[-1], self.kernels[-1])
