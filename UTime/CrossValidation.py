@@ -15,8 +15,11 @@ from datetime import timedelta
 import pandas as pd
 
 
-def initialize_empty_scores(windows, nbr_scores):
-    return ({f"{windows.label[i].split('_')[1]}": [] for i in range(len(windows.label))} for i in range(nbr_scores))
+def initialize_empty_scores(windows):
+    precisions, recalls, F1_scores, FPRs, TPRs, AUCs = (
+        {f"{windows.label[i].split('_')[1]}": [] for i in range(len(windows.label))} for i in range(6))
+    return {'models':[], 'precisions':precisions, 'recalls':recalls, 'F1_scores':F1_scores, 'FPRs':FPRs, 'TPRs':TPRs,
+            'AUCs':AUCs, 'train_losses':[], 'val_losses':[], 'last_epochs':[]}
 
 
 def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
@@ -27,8 +30,7 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
         fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(6, 3))
 
     architecture = architecture.double()
-    precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models, train_losses, val_losses, last_epochs = (
-        initialize_empty_scores(windows, 10))
+    dict = initialize_empty_scores(windows)
     name = kwargs.pop('name', str(datetime.now())[:10])
 
     for iter in range(nb_iter):
@@ -41,28 +43,22 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
         dl_train, dl_test = make_dataloaders(windows, test_ratio=kwargs.get('test_ratio', 0.2),
                                              batch_size=kwargs.get('batch_size',10))
 
-        (precisions, recalls, F1_scores,
-         FPRs, TPRs, AUCs, models, train_losses,
-         val_losses, last_epochs) = train_one_iter(model, iter, loss_function, dl_train, dl_test, models, train_losses,
-                                                   val_losses, last_epochs, precisions, recalls,F1_scores, FPRs, TPRs,
-                                                   AUCs, fig, axes, name=name, **kwargs)
+        dict = train_one_iter(model, iter, loss_function, dl_train, dl_test, dict, fig, axes, **kwargs)
 
     if kwargs.get('verbose', True):
-        plot_mean_loss(train_losses, val_losses, last_epochs, fig=fig, ax=axes[0], **kwargs)
-        plot_mean_ROC(FPRs, TPRs, AUCs, fig=fig, ax=axes[1])
+        plot_mean_loss(dict['train_losses'], dict['val_losses'], dict['last_epochs'], fig=fig, ax=axes[0], **kwargs)
+        plot_mean_ROC(dict['FPRs'], dict['TPRs'], dict['AUCs'], fig=fig, ax=axes[1])
     plt.tight_layout()
     plt.draw()
 
     if kwargs.get('savefig', False):
         plt.savefig('/home/ghisalberti/BL_encoder_decoder/model/diagnostics/'+name+'_cross_val.png')
 
-    return {'precisions':precisions, 'recalls':recalls, 'F1_scores':F1_scores,
-            'FPRs': FPRs, 'TPRs':TPRs, 'AUCs':AUCs, 'models':models,
-            'train_losses':train_losses, 'val_losses':val_losses, 'last_epochs':last_epochs}
+    return dict
 
 
-def train_one_iter(model0, iter, loss_function, dl_train, dl_test, models, train_losses, val_losses, last_epochs, precisions, recalls, F1_scores,
-                   FPRs, TPRs, AUCs, fig, axes, **kwargs):
+def train_one_iter(model0, iter, loss_function, dl_train, dl_test, dict, fig, axes, **kwargs):
+
     model = copy.deepcopy(model0)
     train_loss, test_loss = get_loss_functions(loss_function, dl_train, dl_test)
 
@@ -81,14 +77,13 @@ def train_one_iter(model0, iter, loss_function, dl_train, dl_test, models, train
     else:
         training.fit(verbose=kwargs.pop('verbose',False), early_stop=kwargs.pop('early_stop', True), patience=kwargs.pop('patience', 40),
                      fig=fig, ax=axes[0], label=True, name=name + f'_iter{iter}', **kwargs)
-    precisions, recalls, F1_scores, FPRs, TPRs, AUCs = add_scores(model, dl_test, precisions, recalls, F1_scores, FPRs, TPRs, AUCs)
-    models.append(training.model.to('cpu'))
-    train_losses.append(list(torch.Tensor(training.training_loss).numpy()))
-    val_losses.append(list(torch.Tensor(training.val_loss).numpy()))
-    last_epochs.append(training.current_epoch)
 
-    return precisions, recalls, F1_scores, FPRs, TPRs, AUCs, models, train_losses, val_losses, last_epochs
+    dict = add_scores(model, dl_test, dict)
+    dict['train_losses'] += [list(torch.Tensor(training.training_loss).numpy())]
+    dict['val_losses'] += [list(torch.Tensor(training.val_loss).numpy())]
+    dict['last_epochs'] += [training.current_epoch]
 
+    return dict
 
 
 def get_loss_functions(loss_function, dl_train, dl_test):
@@ -162,7 +157,8 @@ def make_dataloaders_with_stride(windows, **kwargs):
     return dl_train, dl_test
 
 
-def add_scores(model, dl, precisions, recalls, F1_scores, FPRs, TPRs, AUCs):
+def add_scores(model, dl, dict):
+    dict['models'] = dict['models'] + [model.to('cpu')]
     n_classes = model.n_classes
     pred, target = model.compute_pred_and_target(dl)
     if n_classes == 1:
@@ -177,22 +173,15 @@ def add_scores(model, dl, precisions, recalls, F1_scores, FPRs, TPRs, AUCs):
         AUC = auc(FPR, TPR)
         name_class = model.label_names[i].split('_')[1]
 
-        precisions[name_class] = precisions[name_class]+[p]
-        recalls[name_class] = recalls[name_class]+[r]
-        F1_scores[name_class] = F1_scores[name_class]+[F1]
-        TPRs[name_class] = TPRs[name_class]+[TPR]
-        FPRs[name_class] = FPRs[name_class]+[FPR]
-        AUCs[name_class] = AUCs[name_class]+[AUC]
+        dict['precisions'][name_class] += [p]
+        dict['recalls'][name_class] += [r]
+        dict['F1_scores'][name_class] += [F1]
+        dict['TPRs'][name_class] += [TPR]
+        dict['FPRs'][name_class] += [FPR]
+        dict['AUCs'][name_class] += [AUC]
 
-        '''
-        precisions.append(p)
-        recalls.append(r)
-        F1_scores.append(F1)
-        TPRs.append(TPR)
-        FPRs.append(FPR)
-        AUCs.append(AUC)
-        '''
-    return precisions, recalls, F1_scores, FPRs, TPRs, AUCs
+    return dict
+
 
 def plot_mean(reference_x, x_list, y_list, **kwargs):
     x_list, y_list = np.array(x_list), np.array(y_list)
@@ -220,13 +209,15 @@ def plot_mean(reference_x, x_list, y_list, **kwargs):
 
 def plot_mean_ROC(FPRs, TPRs, AUCs, fig, ax, **kwargs):
     ax.cla()
-    fig, ax = plot_mean(np.linspace(0, 1, 1000), FPRs, TPRs, fig=fig, ax=ax)
+    title = f"ROC for the cross-validation"
+    for key in FPRs.keys():
+        fig, ax = plot_mean(np.linspace(0, 1, 1000), FPRs[key], TPRs[key], fig=fig, ax=ax, label = key)
+        title += f"\n{key} AUC = {round(np.mean(np.array(AUCs[key])), 2)}"
     ax.plot(np.linspace(0, 1, 100), np.linspace(0, 1, 100), linestyle='--', color='grey', alpha=0.5)
 
     ax.set_xlabel("False Positive Rate")
     ax.set_ylabel("True Positive Rate")
-    ax.title.set_text(f"ROC for the cross-validation\n AUC = {round(np.mean(np.array(AUCs)), 2)} "
-                      f"+/- {round(np.std(np.array(AUCs)),3)}")
+    ax.title.set_text(title)
     display.clear_output(wait=True)
     display.display(plt.gcf())
     plt.tight_layout()
