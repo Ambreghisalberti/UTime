@@ -29,6 +29,7 @@ class UTime(Architecture):
         self.classifier = self._build_classifier()
 
 
+    '''
     def _build_encoder2D(self):
         layers = []
         for i in range(self.depth - 1):
@@ -43,6 +44,7 @@ class UTime(Architecture):
                                          self.sizes[-1], self.kernels[-1])
 
         return nn.Sequential(*layers)
+    '''
 
     def _build_common_encoder(self):
         layers = []

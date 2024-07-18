@@ -1,10 +1,10 @@
 import torch
 import torch.nn as nn
 from torch.nn import (MaxPool2d, Conv2d, Upsample, BatchNorm2d)
-from UTime.EvaluateAndPred import Model
-from UTime.CommonArchitecture import Architecture
+from UTime.architectureResNet import UTime as UTimeResNet
+import numpy as np
 
-class UTime(Architecture):
+class UTime(UTimeResNet):
     def __init__(self, n_classes,
                  n_time,
                  nb_moments,
@@ -15,10 +15,12 @@ class UTime(Architecture):
                  poolings,
                  **kwargs):
 
+        self.kernel_size_decoder = kwargs.get('kernel_size_decoder', 5)
         super(UTime, self).__init__(n_classes, n_time, nb_moments, nb_channels_spectro, depth,
                  filters, kernels, poolings, **kwargs)
-        self.kernel_size_decoder = kwargs.get('kernel_size_decoder', 5)
 
+
+    def _build_architecture(self, **kwargs):
         self.encoders = []
         self.encoders2D = []
         self.common_encoders = []
@@ -26,15 +28,17 @@ class UTime(Architecture):
         for kernel_size in self.kernels:
 
             # Encoder layers
-            self.encoders.append(self._build_encoder1D(kernel_size))
-            self.encoders2D.append(self._build_encoder2D(kernel_size))
+            kernel_sizes = [kernel_size for i in range(self.depth)]
+            self.encoders.append(self._build_encoder1D(kernel_sizes=kernel_sizes))
+            self.encoders2D.append(self._build_encoder2D(kernel_sizes=kernel_sizes))
             self.common_encoders.append(self._build_common_encoder(kernel_size))
 
         # Decoder layers
-        self.decoder = self._build_decoder()
+        kernel_size_decoder = kwargs.get('kernel_size_decoder', 5)
+        self.decoder = self._build_decoder(kernel_sizes=[kernel_size_decoder for i in range(self.depth)])
         self.classifier = self._build_classifier()
 
-
+    '''
     def _build_encoder1D(self, kernel_size):
         layers = []
         for i in range(self.depth - 1):
@@ -61,13 +65,15 @@ class UTime(Architecture):
                                          self.sizes[-1], kernel_size)
 
         return nn.Sequential(*layers)
+    '''
 
     def _build_common_encoder(self, kernel_size):
         layers = []
         layers.append(nn.Conv2d(self.filters[-1] * 2, self.filters[- 1], kernel_size=(1, kernel_size),
                      padding='same'))
-        return nn.Sequential(*layers)
+        return nn.Sequential(*layers).double().to(self.device)
 
+    '''
     def _build_decoder(self):
         layers = []
         for i in range(1, self.depth):
@@ -81,6 +87,7 @@ class UTime(Architecture):
             layers.append(nn.ReLU(inplace=True))
 
         return nn.Sequential(*layers)
+    '''
 
     def forward(self, x):
         initial_moments, initial_spectro = x
@@ -91,8 +98,8 @@ class UTime(Architecture):
         for nbr in range(len(self.kernels)):
 
             # Encoders
-            moments, encoder_moments_outputs = self.forward_encoder(initial_moments, self.encoders[nbr])
-            spectro, encoder_spectro_outputs = self.forward_encoder(initial_spectro, self.encoders2D[nbr])
+            moments, encoder_moments_outputs = self.forward_encoder(initial_moments, self.encoders[nbr].double().to(self.device))
+            spectro, encoder_spectro_outputs = self.forward_encoder(initial_spectro, self.encoders2D[nbr].double().to(self.device))
             all_encoder_moments_outputs.append(encoder_moments_outputs)
             all_encoder_spectro_outputs.append(encoder_spectro_outputs)
 
@@ -112,16 +119,16 @@ class UTime(Architecture):
                 else:
                     x = layer(x)
 
-            encoded_outputs.append(x)
+            encoded_outputs.append(x.detach().numpy())
 
-        encoded_outputs = torch.tensor(encoded_outputs)
+        encoded_outputs = torch.tensor(np.array(encoded_outputs))
         nb_kernel_sizes,n_batch,n_features,height,width = encoded_outputs.shape
         x = encoded_outputs.transpose(0,1).reshape((n_batch,nb_kernel_sizes*n_features,height,width))  # Vérifier que ça c'est bon
 
-        all_encoder_moments_outputs = torch.tensor(all_encoder_moments_outputs).transpose(0,1)
+        all_encoder_moments_outputs = torch.tensor(np.array(all_encoder_moments_outputs)).transpose(0,1)
         n_batch, nb_kernel_sizes, n_features, height, width = all_encoder_moments_outputs.shape
         all_encoder_moments_output = all_encoder_moments_outputs.reshape((n_batch, nb_kernel_sizes*n_features, height, width))
-        all_encoder_spectro_outputs = torch.tensor(all_encoder_spectro_outputs).transpose(0,1)
+        all_encoder_spectro_outputs = torch.tensor(np.array(all_encoder_spectro_outputs)).transpose(0,1)
         n_batch, nb_kernel_sizes, n_features, height, width = all_encoder_spectro_outputs.shape
         all_encoder_spectro_outputs = all_encoder_spectro_outputs.reshape((n_batch, nb_kernel_sizes*n_features, height, width))
 

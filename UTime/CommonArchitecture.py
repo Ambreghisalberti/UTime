@@ -23,6 +23,7 @@ class Architecture(nn.Module, Model):
         self.n_classes = n_classes
         self.label_names=kwargs.get('label_names',['label_BL'])
         self.n_time = n_time
+        self.nb_channels_spectro = nb_channels_spectro
         self.filters = filters if isinstance(filters, list) else [int(filters * 2 ** i) for i in range(self.depth)]
         self.poolings = poolings if isinstance(poolings, (list, tuple)) else [poolings] * (self.depth - 1)
         self.kernels = kernels if isinstance(kernels, (list, tuple)) else [kernels] * self.depth
@@ -118,6 +119,28 @@ class Architecture(nn.Module, Model):
 
         return nn.Sequential(*layers)
 
+    def _build_encoder2D(self, **kwargs):
+        self.nb_channels = [self.nb_channels_spectro]
+        kernel_sizes = kwargs.get('kernel_sizes', self.kernels)
+        layers = []
+        for i in range(self.depth - 1):
+            for iter in range(self.nb_blocks_per_layer):
+                layers += self._build_conv_block(i, self.nb_channels[-1], kernel_sizes[i],
+                                                 self.sizes[i], kernel_sizes[i], **kwargs)
+
+            new_layers, pooling1, pooling2 = self.add_pooling(i, self.nb_channels[-1])
+            layers += new_layers
+            self.nb_channels.append(int(self.nb_channels[-1] // pooling1))
+
+        # Last block without maxpooling
+        layers += self._build_conv_block(-1, self.nb_channels[-1], kernel_sizes[-1],
+                                         self.sizes[-1], kernel_sizes[-1], **kwargs)
+
+        if self.batch_norm:
+            layers.append(BatchNorm2d(num_features=self.filters[-1]))
+        layers.append(nn.ReLU(inplace=True))
+
+        return nn.Sequential(*layers).to(self.device)
 
     def _build_classifier(self, **kwargs):
         nb_classes = kwargs.get('nb_classes_classifier',self.n_classes)

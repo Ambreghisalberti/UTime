@@ -18,6 +18,9 @@ class UTime(UTimeResNet):
                  depth, filters, kernels, poolings, **kwargs)
 
         '''
+        For the version without residual connections : 
+        
+        
         # Encoder layers
         nb_channels_in = kwargs.get('nb_channels_in', 1)
         # (This allows to give several 2D inputs (more than just the spectro))
@@ -100,6 +103,8 @@ class UTime(UTimeResNet):
 
 
     '''
+    For the version without residual connections : 
+
     def forward(self, x):
         # Encoder
         encoder_outputs = []

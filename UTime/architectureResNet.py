@@ -48,7 +48,7 @@ class UTime(Architecture):
 
         return nn.Sequential(*layers).to(self.device)
 
-
+    '''
     def _build_encoder2D(self, **kwargs):
         self.nb_channels = [self.nb_channels_spectro]
         kernel_sizes = kwargs.get('kernel_sizes', self.kernels)
@@ -71,7 +71,7 @@ class UTime(Architecture):
         layers.append(nn.ReLU(inplace=True))
 
         return nn.Sequential(*layers).to(self.device)
-
+    '''
 
     def _build_decoder(self, **kwargs):
         kernel_sizes = kwargs.get('kernel_sizes', self.kernels)
