@@ -111,7 +111,8 @@ class UTime(Architecture):
                 x = self.apply_batchnorm(x, layer)
 
             elif isinstance(layer, nn.MaxPool2d):
-                encoder_outputs.append(x.detach().numpy())
+                # encoder_outputs.append(x.detach().numpy())
+                encoder_outputs.append(x)
                 x = layer(x)
 
             elif isinstance(layer, nn.Conv2d):
@@ -155,13 +156,13 @@ class UTime(Architecture):
             elif isinstance(layer, nn.Upsample):
                 x = layer(x)
 
-                # res_connection_spectro = encoder_spectro_outputs.pop()
-                res_connection_spectro = torch.Tensor(encoder_spectro_outputs.pop())
+                res_connection_spectro = encoder_spectro_outputs.pop()
+                # res_connection_spectro = torch.Tensor(encoder_spectro_outputs.pop())
                 res_connection_spectro = torch.mean(res_connection_spectro, dim=2)
                 a, b, c = res_connection_spectro.shape
                 res_connection_spectro = res_connection_spectro.reshape((a, b, 1, c))
-                # res_connection_moments = encoder_moments_outputs.pop()
-                res_connection_moments = torch.Tensor(encoder_moments_outputs.pop())
+                res_connection_moments = encoder_moments_outputs.pop()
+                # res_connection_moments = torch.Tensor(encoder_moments_outputs.pop())
 
                 x = torch.cat([x, res_connection_spectro, res_connection_moments], dim=1)
 
