@@ -19,7 +19,7 @@ def initialize_empty_scores(windows):
     precisions, recalls, F1_scores, FPRs, TPRs, AUCs = (
         {f"{windows.label[i].split('_')[1]}": [] for i in range(len(windows.label))} for i in range(6))
     return {'models':[], 'precisions':precisions, 'recalls':recalls, 'F1_scores':F1_scores, 'FPRs':FPRs, 'TPRs':TPRs,
-            'AUCs':AUCs, 'train_losses':[], 'val_losses':[], 'last_epochs':[]}
+            'AUCs':AUCs, 'train_losses':[], 'val_losses':[], 'last_epochs':[], 'dl_tests':[]}
 
 
 def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
@@ -158,7 +158,8 @@ def make_dataloaders_with_stride(windows, **kwargs):
 
 
 def add_scores(model, dl, dict):
-    dict['models'] = dict['models'] + [model.to('cpu')]
+    dict['models'] += [model.to('cpu')]
+    dict['dl_tests'] = [dl]
     n_classes = model.n_classes
     pred, target = model.compute_pred_and_target(dl)
     if n_classes == 1:
