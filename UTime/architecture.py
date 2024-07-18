@@ -70,8 +70,8 @@ class UTime(Architecture):
         moments, spectro = x
 
         # Encoders
-        moments, encoder_moments_outputs = self.forward_encoder(moments, self.encoder)
-        spectro, encoder_spectro_outputs = self.forward_encoder(spectro, self.encoder2D)
+        moments, encoder_moments_outputs = self.forward_encoder(moments, self.encoder.to(self.device))
+        spectro, encoder_spectro_outputs = self.forward_encoder(spectro, self.encoder2D.to(self.device))
 
         # Squish spectro encoder output in 1D
         ''' These following lines ensure that if there are still several channels in the spectro, 
