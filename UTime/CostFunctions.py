@@ -8,6 +8,18 @@ def size_tensor(tensor):
         size *= dim
     return size
 
+class IntersectionOverUnion(torch.nn.Module):
+    def __init__(self, threshold=0.5):
+        super(IntersectionOverUnion, self).__init__()
+        self.threshold = threshold
+
+    def forward(self,input, target):
+        TP = np.logical(input > self.threshold, target).sum()
+        FN = np.logical(input <= self.threshold, target).sum()
+        FP = np.logical(input > self.threshold, np.logical_not(target)).sum()
+        return TP/(TP+FP+FN)
+
+
 class WeightedLoss(torch.nn.Module):
     def __init__(self, dl):
         super(WeightedLoss, self).__init__()
