@@ -117,7 +117,7 @@ def make_dataloaders_without_stride(windows, test_ratio=0.2, batch_size=10, **kw
     return dl_train, dl_test
 
 
-def make_windows_groups(windows, interval=timedelta(days=1)):
+def make_windows_groups(windows, interval=timedelta(days=1), **kwargs):
     all_start, all_stop = windows.dataset.index.values[0], windows.dataset.index.values[-1]
     starts_intervals = pd.date_range(start=all_start, end=all_stop, freq=interval)
     stops_intervals = starts_intervals + interval
