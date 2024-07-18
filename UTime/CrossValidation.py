@@ -159,7 +159,8 @@ def make_dataloaders_with_stride(windows, **kwargs):
 
 def add_scores(model, dl, dict):
     dict['models'] += [model.to('cpu')]
-    dict['dl_tests'] = [dl]
+    model = model.to(model.device)
+    dict['dl_tests'] = [dl]   # Would need to save this datalaoder on cpu device instead of gpu?
     n_classes = model.n_classes
     pred, target = model.compute_pred_and_target(dl)
     if n_classes == 1:
