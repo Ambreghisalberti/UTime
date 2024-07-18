@@ -78,7 +78,7 @@ def train_one_iter(model0, iter, loss_function, dl_train, dl_test, dict, fig, ax
         training.fit(verbose=kwargs.pop('verbose',False), early_stop=kwargs.pop('early_stop', True), patience=kwargs.pop('patience', 40),
                      fig=fig, ax=axes[0], label=True, name=name + f'_iter{iter}', **kwargs)
 
-    dict = add_scores(model, dl_test, dict)
+    dict = add_scores(training.model, dl_test, dict)
     dict['train_losses'] += [list(torch.Tensor(training.training_loss).numpy())]
     dict['val_losses'] += [list(torch.Tensor(training.val_loss).numpy())]
     dict['last_epochs'] += [training.current_epoch]
