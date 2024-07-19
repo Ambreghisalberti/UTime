@@ -102,7 +102,7 @@ def get_loss_functions(loss_function, dl_train, dl_test):
     elif loss_function == 'IoU':
         train_loss, test_loss = IntersectionOverUnion(), IntersectionOverUnion()
     elif loss_function == 'FocalLoss':
-        train_loss, test_loss = FocalLoss(), FocalLoss()
+        train_loss, test_loss = FocalLoss(alpha=0.75), FocalLoss(alpha=0.75)
     return train_loss, test_loss
 
 
