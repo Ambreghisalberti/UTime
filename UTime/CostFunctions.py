@@ -67,7 +67,7 @@ class IntersectionOverUnion(torch.nn.Module):
         return - (input*target).sum() / ((input*(1-target)).sum()+target.sum())
 
 class FocalLoss(torch.nn.Module):
-    def __init__(self, gamma=3, alpha=1):
+    def __init__(self, gamma=0.1, alpha=1):
         self.alpha = alpha
         self.gamma = gamma
         super(FocalLoss, self).__init__()
