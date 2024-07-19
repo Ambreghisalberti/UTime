@@ -8,17 +8,6 @@ def size_tensor(tensor):
         size *= dim
     return size
 
-class IntersectionOverUnion(torch.nn.Module):
-    def __init__(self, threshold=0.5):
-        super(IntersectionOverUnion, self).__init__()
-        self.threshold = threshold
-
-    def forward(self,input, target):
-        TP = np.logical(input > self.threshold, target).sum()
-        FN = np.logical(input <= self.threshold, target).sum()
-        FP = np.logical(input > self.threshold, np.logical_not(target)).sum()
-        return TP/(TP+FP+FN)
-
 
 class WeightedLoss(torch.nn.Module):
     def __init__(self, dl):
@@ -67,6 +56,15 @@ class DiceLoss(torch.nn.Module):
     def forward(self, input, target, epsilon=0.000000001):
         return (1 - (input*target + epsilon).sum()/(input + target + epsilon).sum() -
                 ((1-input)*(1-target) + epsilon).sum())/((1-input) + (1-target) + epsilon).sum()
+
+
+class IntersectionOverUnion(torch.nn.Module):
+    def __init__(self, threshold=0.5):
+        self.threshold = threshold
+        super(IntersectionOverUnion, self).__init__()
+
+    def forward(self, input, target):
+        return - (input*target).sum() / ((input*(1-target)).sum()+target.sum())
 
 
 class WeightedByDistanceMP(torch.nn.Module):
