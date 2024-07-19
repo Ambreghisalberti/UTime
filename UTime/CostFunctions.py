@@ -66,6 +66,16 @@ class IntersectionOverUnion(torch.nn.Module):
     def forward(self, input, target):
         return - (input*target).sum() / ((input*(1-target)).sum()+target.sum())
 
+class FocalLoss(torch.nn.Module):
+    def __init__(self, gamma=0.5, alpha=1):
+        self.alpha = alpha
+        self.gamma = gamma
+        super(FocalLoss, self).__init__()
+
+    def forward(self, input, target):
+        p_t = input*target + (1-input)*(1-target)
+        return - (self.alpha * (1-p_t)**self.gamma * torch.log(p_t)).sum()
+
 
 class WeightedByDistanceMP(torch.nn.Module):
     def __init__(self):

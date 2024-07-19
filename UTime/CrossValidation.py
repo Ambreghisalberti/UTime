@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 from torch.nn import MSELoss, CrossEntropyLoss, BCELoss
-from .CostFunctions import WeightedMSE, WeightedBCE, DiceLoss, IntersectionOverUnion
+from .CostFunctions import WeightedMSE, WeightedBCE, DiceLoss, IntersectionOverUnion, FocalLoss
 from torch.utils.data import DataLoader, random_split
 from sklearn.metrics import auc
 import numpy as np
@@ -101,6 +101,8 @@ def get_loss_functions(loss_function, dl_train, dl_test):
         train_loss, test_loss = DiceLoss(), DiceLoss()
     elif loss_function == 'IoU':
         train_loss, test_loss = IntersectionOverUnion(), IntersectionOverUnion()
+    elif loss_function == 'FocalLoss':
+        train_loss, test_loss = FocalLoss(), FocalLoss()
     return train_loss, test_loss
 
 
