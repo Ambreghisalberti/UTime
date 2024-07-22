@@ -42,8 +42,10 @@ class Model():
         return loss / count
 
     def compute_pred_and_target(self, dl, mirrored=False):
-        target = np.array([])
-        pred = np.array([])
+
+        target = torch.Tensor([])
+        pred = torch.Tensor([])
+
         for i, X, y in dl:
             if isinstance(X, tuple):
                 a,b = X
@@ -52,8 +54,8 @@ class Model():
                 X = [X[0].to(self.device), X[1].to(self.device)]
             else:
                 X = X.to(self.device)
-            target = np.concatenate((target, torch.flatten(y).numpy()))
-            pred = np.concatenate((pred, torch.Tensor.cpu(torch.flatten(self.forward(X))).detach().numpy()))
+            target = torch.concat((target, y))
+            pred = torch.concat((pred, torch.Tensor.cpu(self.forward(X))))
 
         if mirrored:
             for i, X, y in dl:
@@ -64,8 +66,11 @@ class Model():
                     flipped_X = [X[0].to(self.device).flip(-1), X[1].to(self.device).flip(-1)]
                 else:
                     flipped_X = X.to(self.device).flip(-1)
-                target = np.concatenate((target, torch.flatten(y.flip(-1)).numpy()))
-                pred = np.concatenate((pred, torch.Tensor.cpu(torch.flatten(self.forward(flipped_X))).detach().numpy()))
+                target = torch.concat((target, y.flip(-1)))
+                pred = torch.concat((pred, torch.Tensor.cpu(self.forward(flipped_X))))
+
+        pred = pred.transpose(0,1)
+        target=target.transpose(0,1)
 
         return pred, target
 
@@ -80,6 +85,9 @@ class Model():
                 raise Exception("Either a dataloader or the prediction and target must be given.")
             pred = kwargs.get('prediction')
             target = kwargs.get('target')
+
+        pred = pred.detach().numpy().flatten()
+        target = target.numpy().flatten()
 
         pred_class = pred > threshold
 

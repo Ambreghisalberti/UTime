@@ -207,18 +207,17 @@ class Training():
                 target=[target]
             for i in range(n_classes):
                 pred_i = pred[i]
-                print(pred_i.shape)
                 target_i = target[i]
                 FPR, TPR = self.model.ROC(pred=pred_i, target=target_i, verbose=False)
                 name_class = self.model.label_names[i].split('_')[1]
                 ax.scatter(FPR, TPR, s=0.1, label=name_class)
-                title += f', AUC {name_class} = {round(auc(FPR, TPR),3)}'
+                title += f'\nAUC {name_class} = {round(auc(FPR, TPR),3)}'
             ax.set_title(title)
             ax.plot(np.linspace(0,1,100),np.linspace(0,1,100),linestyle='--', alpha=0.5,
                         color='grey')
             ax.set_xlabel('FPR')
             ax.set_ylabel('TPR')
-            ax.legend()
+            ax.legend(loc='center left', bbox_to_anchor = (1, 0), fancybox=True, shadow=True)
         plt.tight_layout()
         plt.draw()
         if self.make_movie:

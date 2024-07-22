@@ -148,6 +148,7 @@ class Windows(DataForWindows):
 
         pred['pred'] = pred['pred_sum'].values / pred['pred_count'].values
         pred['predicted_class'] = pred.pred.values > threshold
+        pred.loc[pred[pred['pred'].isna().values].index.values, 'predicted_class'] = np.nan
 
         return pred
 
@@ -194,6 +195,7 @@ class WindowsSpectro2D(DataForWindows):
 
         pred['pred'] = pred['pred_sum'].values / pred['pred_count'].values
         pred['predicted_class'] = pred.pred.values > threshold
+        pred.loc[pred[pred['pred'].isna().values].index.values, 'predicted_class'] = np.nan
 
         return pred
 
@@ -236,6 +238,7 @@ class WindowsMoments(DataForWindows):
 
         pred['pred'] = pred['pred_sum'].values / pred['pred_count'].values
         pred['predicted_class'] = pred.pred.values > threshold
+        pred.loc[pred[pred['pred'].isna().values].index.values, 'predicted_class'] = np.nan
 
         return pred
 

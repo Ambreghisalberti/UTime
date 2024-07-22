@@ -26,8 +26,8 @@ class UTime(Architecture):
 
         # Decoder layers
         self.decoder = self._build_decoder()
-
-        self.classifiers = [self._build_classifier(nb_classes_classifier=1).double().to(self.device) for i in range(n_classes)]
+        for i in range(n_classes):
+            self.__setattr__(f'classifier_{self.label_names[i]}', self._build_classifier(nb_classes_classifier=1).double().to(self.device))
 
 
     def _build_encoder2D(self):
@@ -107,14 +107,16 @@ class UTime(Architecture):
             else:
                 x = layer(x)
 
+
         # Dense classification
         outs = torch.Tensor([]).double().to(self.device)
-        for classifier in self.classifiers:
+        for label in self.label_names:
+            # classifier = self[f'classifier_{label}']
+            classifier = getattr(self, f'classifier_{label}')
             out = x
             for layer in classifier:
                 out = layer(out)
-            outs = torch.cat((outs, out.transpose(0,1))).double()
-            #outs = torch.cat((outs, out.unsqueeze_(0))).double()
-        outs = outs.transpose(0,1)
-        #outs = outs.squeeze_(2).transpose(0,1)
+            outs = torch.cat((outs, out.transpose(0, 1))).double()
+        outs = outs.transpose(0, 1)
+
         return outs
