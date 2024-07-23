@@ -90,7 +90,13 @@ class UTime(UTimeResNet):
 
         return nn.Sequential(*layers)
 
-    def _build_classifier(self):
+    def _build_classifier(self, nb_layers=1):
+        layers = []
+        for i in range(nb_layers-1):
+            layers.append(Conv2d(self.filters[0], self.filters[0], kernel_size=(self.kernels[0], self.kernels[0])))
+            layers.append(BatchNorm2d(num_features=self.filters[0]))
+            layers.append(nn.ReLU())
+
         layers = [Conv2d(self.filters[0], self.n_classes, kernel_size=(1, 1))]
         layers.append(BatchNorm2d(num_features=self.n_classes))
 
