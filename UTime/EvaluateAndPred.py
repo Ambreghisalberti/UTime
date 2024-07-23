@@ -116,12 +116,12 @@ class Model():
             FN = kwargs.get('FN')
 
         if (TP + FN) == 0:
-            print("There is no positive target, the recall is not defined.")
+            # print("There is no positive target, the recall is not defined.")
             recall = -1
         else:
             recall = TP / (TP + FN)
         if (TP + FP) == 0:
-            print("There is no predicted positive class, the precision is not defined.")
+            # print("There is no predicted positive class, the precision is not defined.")
             precision = -1
         else:
             precision = TP / (TP + FP)
