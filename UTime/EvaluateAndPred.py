@@ -134,6 +134,17 @@ class Model():
 
         return precision, recall, F1
 
+    def max_F1(self, **kwargs):
+        precisions, recalls, F1s = [], [], []
+        thresholds = np.linspace(0, 1, 1000)
+        for threshold in thresholds:
+            precision, recall, F1 = self.scores(verbose=False, threshold=threshold, **kwargs)
+            precisions.append(precision)
+            recalls.append(recall)
+            F1s.append(F1)
+        F1s = np.array(F1s)
+
+        return precisions[np.argmax(F1s)], recalls[np.argmax(F1s)], np.max(F1s)
 
     def scatter_threshold_on_ROC(self, threshold, FPR, TPR, thresholds, **kwargs):
         threshold_plus = thresholds[thresholds >= threshold][0]  # First threshold above wanted value

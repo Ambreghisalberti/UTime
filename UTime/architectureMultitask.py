@@ -18,6 +18,7 @@ class UTime(Architecture):
 
         super(UTime, self).__init__(n_classes, n_time, nb_moments, nb_channels_spectro, depth,
                  filters, kernels, poolings, **kwargs)
+        self.nb_layers_classifier = kwargs.get('nb_layers_classifier', 2)
 
         # Encoder layers
         self.encoder = self._build_encoder1D()
@@ -27,7 +28,8 @@ class UTime(Architecture):
         # Decoder layers
         self.decoder = self._build_decoder()
         for i in range(n_classes):
-            self.__setattr__(f'classifier_{self.label_names[i]}', self._build_classifier(nb_classes_classifier=1).double().to(self.device))
+            self.__setattr__(f'classifier_{self.label_names[i]}', self._build_classifier(
+                nb_classes_classifier=1, nb_layers=self.nb_layers_classifier).double().to(self.device))
 
 
     def _build_encoder2D(self):

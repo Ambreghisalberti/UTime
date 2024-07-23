@@ -16,10 +16,10 @@ import pandas as pd
 
 
 def initialize_empty_scores(windows):
-    precisions, recalls, F1_scores, FPRs, TPRs, AUCs = (
-        {f"{windows.label[i].split('_')[1]}": [] for i in range(len(windows.label))} for i in range(6))
+    precisions, recalls, F1_scores, FPRs, TPRs, AUCs, max_F1s = (
+        {f"{windows.label[i].split('_')[1]}": [] for i in range(len(windows.label))} for i in range(7))
     return {'models':[], 'precisions':precisions, 'recalls':recalls, 'F1_scores':F1_scores, 'FPRs':FPRs, 'TPRs':TPRs,
-            'AUCs':AUCs, 'train_losses':[], 'val_losses':[], 'last_epochs':[], 'dl_tests':[]}
+            'AUCs':AUCs, 'max_F1s':max_F1s, 'train_losses':[], 'val_losses':[], 'last_epochs':[], 'dl_tests':[]}
 
 
 def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
@@ -179,6 +179,7 @@ def add_scores(model, dl, dict):
         p, r, F1 = model.scores(prediction=pred_i, target=target_i)
         FPR, TPR = model.ROC(pred=pred_i, target=target_i, verbose=False)
         AUC = auc(FPR, TPR)
+        prec_maxF1, recall_maxF1, max_F1 = model.max_F1(prediction=pred_i, target=target_i)
         name_class = model.label_names[i].split('_')[1]
 
         dict['precisions'][name_class] += [p]
@@ -187,6 +188,7 @@ def add_scores(model, dl, dict):
         dict['TPRs'][name_class] += [TPR]
         dict['FPRs'][name_class] += [FPR]
         dict['AUCs'][name_class] += [AUC]
+        dict['max_F1s'][name_class] += [{'max_F1':max_F1, 'prec_maxF1':prec_maxF1, 'recall_maxF1':recall_maxF1}]
 
     return dict
 
