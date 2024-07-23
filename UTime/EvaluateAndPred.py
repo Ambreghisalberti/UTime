@@ -125,7 +125,10 @@ class Model():
             precision = -1
         else:
             precision = TP / (TP + FP)
-        F1 = TP / (TP + (FN + FP) / 2)
+        if (TP + (FN + FP) / 2) == 0:
+            F1 = -1
+        else:
+            F1 = TP / (TP + (FN + FP) / 2)
 
         if verbose:
             print(
