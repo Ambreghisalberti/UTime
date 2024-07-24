@@ -142,10 +142,36 @@ class Architecture(nn.Module, Model):
 
         return nn.Sequential(*layers).to(self.device)
 
+
+    def _build_classifier(self, nb_layers=1):
+        layers = []
+        for i in range(nb_layers-1):
+            layers.append(Conv2d(self.filters[0], self.filters[0], kernel_size=(self.kernels[0], self.kernels[0])))
+            layers.append(BatchNorm2d(num_features=self.filters[0]))
+            layers.append(nn.ReLU())
+
+        layers.append(Conv2d(self.filters[0], self.n_classes, kernel_size=(1, 1)))
+        layers.append(BatchNorm2d(num_features=self.n_classes))
+
+        if self.n_classes == 1:
+            layers.append(nn.Sigmoid())
+        else:
+            layers.append(nn.Softmax(dim=1))
+
+        return nn.Sequential(*layers)
+
     def _build_classifier(self, **kwargs):
         nb_classes = kwargs.get('nb_classes_classifier',self.n_classes)
-        layers = [nn.Dropout(self.dropout), Conv2d(self.filters[0], nb_classes, kernel_size=(1, 1))]
+        nb_layers = kwargs.get('nb_layers',1)
 
+        layers = [nn.Dropout(self.dropout)]
+        for i in range(nb_layers-1):
+            layers.append(Conv2d(self.filters[0], self.filters[0], kernel_size=(self.kernels[0], self.kernels[0])))
+            if self.batch_norm:
+                layers.append(BatchNorm2d(num_features=self.filters[0]))
+            layers.append(nn.ReLU())
+
+        layers.append(Conv2d(self.filters[0], nb_classes, kernel_size=(1, 1)))
         if self.batch_norm:
             layers.append(BatchNorm2d(num_features=nb_classes))
 
