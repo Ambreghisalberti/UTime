@@ -97,7 +97,7 @@ class UTime(UTimeResNet):
             layers.append(BatchNorm2d(num_features=self.filters[0]))
             layers.append(nn.ReLU())
 
-        layers = [Conv2d(self.filters[0], self.n_classes, kernel_size=(1, 1))]
+        layers.append(Conv2d(self.filters[0], self.n_classes, kernel_size=(1, 1)))
         layers.append(BatchNorm2d(num_features=self.n_classes))
 
         if self.n_classes == 1:
