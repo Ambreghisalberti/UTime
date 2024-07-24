@@ -166,7 +166,7 @@ class Architecture(nn.Module, Model):
 
         layers = [nn.Dropout(self.dropout)]
         for i in range(nb_layers-1):
-            layers.append(Conv2d(self.filters[0], self.filters[0], kernel_size=(self.kernels[0], self.kernels[0])))
+            layers.append(Conv2d(self.filters[0], self.filters[0], kernel_size=(1, self.kernels[0])))
             if self.batch_norm:
                 layers.append(BatchNorm2d(num_features=self.filters[0]))
             layers.append(nn.ReLU())
