@@ -98,3 +98,34 @@ class WeightedByDistanceMP(torch.nn.Module):
         FP = (1-input)*target
 
         return (FN*FN_ponderation + FP*FP_ponderation).mean()
+
+# Need to check that it's convex and derivable (= useful for optimization)
+class maxF1(torch.nn.Module):
+    def __init__(self):
+        super(maxF1, self).__init__()
+
+    def forward(self, input, target):
+        # target = target.numpy().flatten()
+        # input = input.detach().numpy().flatten()
+
+        F1s = []
+        thresholds = np.linspace(0, 1, 1000)
+        for threshold in thresholds:
+            pred_class = input > threshold
+
+            TP, FP, FN = 0, 0, 0
+            TP += (target * pred_class).sum()  # target = 1 and pred = 1
+            FP += ((1 - target) * pred_class).sum()  # target = 0 and pred_class = 1
+            FN += (target * (1 - pred_class)).sum()  # target = 1 and pred_class = 0
+            #TP, FP, FN = TP.item(), FP.item(), FN.item()
+
+            if (TP + (FN + FP) / 2) == 0:
+                F1 = 0
+            else:
+                F1 = TP / (TP + (FN + FP) / 2)
+
+            F1s.append(F1)
+
+        F1s = np.array(F1s)
+
+        return torch.Tensor([1 - np.max(F1s)])

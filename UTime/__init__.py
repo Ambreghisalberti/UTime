@@ -119,7 +119,43 @@ class Windows(DataForWindows):
 
         return indice, (moments, spectro), labels
 
+    def all_pred(self, model, threshold=0.5):
+        nbrWindows = len(self.all_windows_indices)
+        pred = pd.DataFrame(np.zeros((len(self.all_dataset), 1 + len(model.label_names))), index=self.all_dataset.index.values,
+                            columns=[f"pred_sum_{label.split('_')[1]}" for label in model.label_names] + ["pred_count"])
+        print(f"Number of windows = {nbrWindows}.")
 
+        for count in range(nbrWindows):
+            i = self.all_windows_indices[count]
+            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            moments = self.all_dataset.iloc[i - self.win_length + 1: i + 1][self.moments_features]
+            moments = torch.tensor(
+                np.transpose(moments.values).reshape((1, len(self.moments_features), 1, self.win_length))).double().to(
+                device)
+            spectro = self.all_dataset.iloc[i - self.win_length + 1: i + 1][self.spectro_features]
+            spectro = torch.tensor(
+                np.transpose(spectro.values).reshape((1, 1, len(self.spectro_features), self.win_length))).double().to(
+                device)
+            # prediction = torch.Tensor.cpu(model.forward((moments, spectro)).flatten()).detach().numpy()
+            prediction = torch.Tensor.cpu(model.forward((moments, spectro))).detach().numpy()
+
+            for nbr,label in enumerate(model.label_names):
+                pred.iloc[i - self.win_length + 1: i + 1, -1 - len(model.label_names) + nbr] = (pred.iloc[i - self.win_length + 1: i + 1, -2].values +
+                                                                 prediction[:,nbr,:,:])
+
+            pred.iloc[i - self.win_length + 1: i + 1, -1] = pred.iloc[i - self.win_length + 1: i + 1, -1].values + 1
+
+            if count % (nbrWindows // 10) == 0:
+                print(f"{round(count / nbrWindows * 100, 2)}% of windows predicted.")
+
+        for label in model.label_names:
+            pred[f"pred_{label.split('_')[1]}"] = pred[f"pred_sum_{label.split('_')[1]}"].values / pred['pred_count'].values
+            pred[f"predicted_class_{label.split('_')[1]}"] = pred[f"pred_{label.split('_')[1]}"].values > threshold
+            pred.loc[pred[pred[f"pred_{label.split('_')[1]}"].isna().values].index.values, f"predicted_class_{label.split('_')[1]}"] = np.nan
+
+        return pred
+
+    '''
     def all_pred(self, model, threshold=0.5):
         nbrWindows = len(self.all_windows_indices)
         pred = pd.DataFrame(np.zeros((len(self.all_dataset),2)), index=self.all_dataset.index.values,
@@ -151,7 +187,7 @@ class Windows(DataForWindows):
         pred.loc[pred[pred['pred'].isna().values].index.values, 'predicted_class'] = np.nan
 
         return pred
-
+    '''
 
 class WindowsSpectro2D(DataForWindows):
 
