@@ -26,7 +26,8 @@ class Model():
                     inputs = inputs.to(self.device).double()
                 labels = labels.to(self.device)
                 count += 1
-                loss += criterion(torch.flatten(self.forward(inputs)), torch.flatten(labels.double())).detach()
+                #loss += criterion(torch.flatten(self.forward(inputs)), torch.flatten(labels.double())).detach()
+                loss += criterion(self.forward(inputs), labels.double()).detach()
 
         if mirrored:
             for i, inputs, labels in dl:
@@ -36,9 +37,8 @@ class Model():
                     flipped_inputs = inputs.to(self.device).double().flip(-1)
                 labels = labels.to(self.device)
                 count += 1
-                loss += criterion(torch.flatten(self.forward(flipped_inputs)),
-                                  torch.flatten(labels.flip(-1).double())).detach()
-
+                #loss += criterion(torch.flatten(self.forward(flipped_inputs)),torch.flatten(labels.flip(-1).double())).detach()
+                loss += criterion(self.forward(flipped_inputs),labels.flip(-1).double()).detach()
         return loss / count
 
     def compute_pred_and_target(self, dl, mirrored=False):

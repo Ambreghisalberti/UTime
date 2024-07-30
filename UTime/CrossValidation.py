@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from torch.nn import MSELoss, CrossEntropyLoss, BCELoss
-from .CostFunctions import WeightedMSE, WeightedBCE, DiceLoss, IntersectionOverUnion, FocalLoss, maxF1
+from .CostFunctions import (WeightedMSE, WeightedBCE, DiceLoss, IntersectionOverUnion, FocalLoss,
+                            maxF1, roc_star)
 from torch.utils.data import DataLoader, random_split
 from sklearn.metrics import auc
 import numpy as np
@@ -105,6 +106,8 @@ def get_loss_functions(loss_function, dl_train, dl_test):
         train_loss, test_loss = FocalLoss(alpha=0.75), FocalLoss(alpha=0.75)
     elif loss_function == 'maxF1':
         train_loss, test_loss = maxF1(), maxF1()
+    elif loss_function == 'roc_star':
+        train_loss, test_loss = roc_star(), roc_star()
     return train_loss, test_loss
 
 

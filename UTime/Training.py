@@ -56,23 +56,23 @@ class Training():
         self.optimizer.zero_grad()
         outputs = self.model.forward(batch)
         #loss = self.train_criterion(torch.flatten(outputs), torch.flatten(labels)).double()
-        #loss = self.train_criterion(outputs, labels).double()
+        loss = self.train_criterion(outputs, labels).double()
 
         ''' Here make a modification to consider multiclass or multitask prediction? 
         For example, making the sum of train_criterion for preds of different classes, 
         so they all have the same order of magnitude of participation in the loss, not depending 
         on the number of points in each class.
-        '''
-        nb_classes, _, _, _ = outputs.shape
+        
+        _, nb_classes, _, _ = outputs.shape
         loss = 0
 
         for i in range(nb_classes):
-            outs = outputs[i,:,:,:]
-            labs = labels[i,:,:,:]
+            outs = outputs[:,i,:,:]
+            labs = labels[:,i,:,:]
             loss += self.train_criterion(torch.flatten(outs), torch.flatten(labs)).double()
 
         loss = loss/nb_classes
-
+        '''
         # Backward pass and optimization
         loss.backward()
         self.optimizer.step()

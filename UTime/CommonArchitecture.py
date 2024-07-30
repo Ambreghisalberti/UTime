@@ -104,29 +104,33 @@ class Architecture(nn.Module, Model):
         layers.append(nn.MaxPool2d(kernel_size=(pooling1, pooling2)))
         return layers, pooling1, pooling2
 
-    def _build_encoder1D(self):
+    def _build_encoder1D(self, **kwargs):
         self.sizes = [self.n_time]
+        dilatation = kwargs.get('dilatation',1)
         layers = []
         for i in range(self.depth - 1):
-            layers += self._build_conv_block(i, 1, 1, self.sizes[-1], self.kernels[i])
+            layers += self._build_conv_block(i, 1, 1, self.sizes[-1], self.kernels[i],
+                                             dilatation=dilatation)
             new_layers, pooling1, pooling2 = self.add_pooling(i, 1)
             layers += new_layers
             new_size = int(self.sizes[-1] // pooling2)
             assert new_size > 0, "There was too much maxpooling, there is no data left"
             self.sizes.append(int(self.sizes[-1] // pooling2))
 
-        layers += self._build_conv_block(-1, 1, 1, self.sizes[-1], self.kernels[-1])
+        layers += self._build_conv_block(-1, 1, 1, self.sizes[-1], self.kernels[-1],
+                                         dilatation=dilatation)
 
         return nn.Sequential(*layers)
 
     def _build_encoder2D(self, **kwargs):
+        dilatation = kwargs.pop('dilatation',1)
         self.nb_channels = [self.nb_channels_spectro]
         kernel_sizes = kwargs.get('kernel_sizes', self.kernels)
         layers = []
         for i in range(self.depth - 1):
             for iter in range(self.nb_blocks_per_layer):
                 layers += self._build_conv_block(i, self.nb_channels[-1], kernel_sizes[i],
-                                                 self.sizes[i], kernel_sizes[i], **kwargs)
+                                                 self.sizes[i], kernel_sizes[i], dilatation=dilatation, **kwargs)
 
             new_layers, pooling1, pooling2 = self.add_pooling(i, self.nb_channels[-1])
             layers += new_layers
@@ -134,7 +138,7 @@ class Architecture(nn.Module, Model):
 
         # Last block without maxpooling
         layers += self._build_conv_block(-1, self.nb_channels[-1], kernel_sizes[-1],
-                                         self.sizes[-1], kernel_sizes[-1], **kwargs)
+                                         self.sizes[-1], kernel_sizes[-1], dilatation=dilatation, **kwargs)
 
         if self.batch_norm:
             layers.append(BatchNorm2d(num_features=self.filters[-1]))
