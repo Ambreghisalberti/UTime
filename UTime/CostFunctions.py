@@ -222,10 +222,10 @@ class maxF1(torch.nn.Module):
     '''
 
 class roc_star(torch.nn.Module):
-    def __init__(self, gamma=0.8, p=2):
+    def __init__(self, p=2):
         super(roc_star, self).__init__()
-        self.gamma = gamma
         self.p = p
+        self.gamma = 0
 
     def forward_one_class(self, input, target):
         target = target > 0.5
@@ -238,6 +238,7 @@ class roc_star(torch.nn.Module):
         neg = neg.repeat(size_pos).reshape((size_pos, size_neg)).transpose(0, 1).flatten()
         loss = ((neg + self.gamma - pos) ** self.p).sum()
 
+        self.gamma = max(1,torch.mean(pos-neg).item()*1.1)
         return loss
 
     def forward(self,input,target):
