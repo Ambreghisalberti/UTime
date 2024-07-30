@@ -68,7 +68,7 @@ class Training():
 
         for i in range(nb_classes):
             outs = outputs[i,:,:,:]
-            labs = labels[i,:,,:]
+            labs = labels[i,:,:,:]
             loss += self.train_criterion(torch.flatten(outs), torch.flatten(labs)).double()
 
         loss = loss/nb_classes
