@@ -46,7 +46,7 @@ class Training():
         self.name = kwargs.get('name', str(datetime.now())[:10])
         self.make_movie = kwargs.get('make_movie', False)
 
-    def backward_propagation(self, batch, labels):
+    def backward_propagation(self, batch, labels, **kwargs):
         if isinstance(batch, tuple):
             a,b = batch
             batch = (a.double().to(self.model.device), b.double().to(self.model.device))
@@ -55,24 +55,31 @@ class Training():
         labels = labels.to(self.model.device)
         self.optimizer.zero_grad()
         outputs = self.model.forward(batch)
-        #loss = self.train_criterion(torch.flatten(outputs), torch.flatten(labels)).double()
-        loss = self.train_criterion(outputs, labels).double()
 
-        ''' Here make a modification to consider multiclass or multitask prediction? 
-        For example, making the sum of train_criterion for preds of different classes, 
-        so they all have the same order of magnitude of participation in the loss, not depending 
-        on the number of points in each class.
-        
-        _, nb_classes, _, _ = outputs.shape
-        loss = 0
+        method = kwargs.get('method','flatten')
 
-        for i in range(nb_classes):
-            outs = outputs[:,i,:,:]
-            labs = labels[:,i,:,:]
-            loss += self.train_criterion(torch.flatten(outs), torch.flatten(labs)).double()
+        if method == 'flatten':
+            loss = self.train_criterion(torch.flatten(outputs), torch.flatten(labels)).double()
+        elif method == 'nothing':
+            loss = self.train_criterion(outputs, labels).double()
+        elif method == 'by_class':
+            ''' Here make a modification to consider multiclass or multitask prediction? 
+            For example, making the sum of train_criterion for preds of different classes, 
+            so they all have the same order of magnitude of participation in the loss, not depending 
+            on the number of points in each class.
+            '''
+            _, nb_classes, _, _ = outputs.shape
+            loss = 0
 
-        loss = loss/nb_classes
-        '''
+            for i in range(nb_classes):
+                outs = outputs[:,i,:,:]
+                labs = labels[:,i,:,:]
+                loss += self.train_criterion(torch.flatten(outs), torch.flatten(labs)).double()
+            loss = loss/nb_classes
+
+        else:
+            raise Exception('Method should be flatten, nothing, or by_class.')
+
         # Backward pass and optimization
         loss.backward()
         self.optimizer.step()
@@ -92,7 +99,7 @@ class Training():
                 inputs = a.double(), b.double()
             else:
                 inputs = inputs.double()
-            loss += self.backward_propagation(inputs, labels.double()).double()
+            loss += self.backward_propagation(inputs, labels.double(), **kwargs).double()
             count += 1
 
         if self.mirrored:
@@ -102,7 +109,7 @@ class Training():
                     flipped_inputs = a.flip(-1).double(), b.flip(-1).double()
                 else:
                     flipped_inputs = inputs.flip(-1).double()
-                loss += self.backward_propagation(flipped_inputs, labels.flip(-1).double()).double()
+                loss += self.backward_propagation(flipped_inputs, labels.flip(-1).double(),**kwargs).double()
                 count += 1
 
         self.training_loss.append(loss / count)  # On one batch
