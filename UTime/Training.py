@@ -69,13 +69,14 @@ class Training():
             on the number of points in each class.
             '''
             _, nb_classes, _, _ = outputs.shape
+            weights = kwargs.get('weights', [1/nb_classes for i in range(nb_classes)])
             loss = 0
 
             for i in range(nb_classes):
                 outs = outputs[:,i,:,:]
                 labs = labels[:,i,:,:]
-                loss += self.train_criterion(torch.flatten(outs), torch.flatten(labs)).double()
-            loss = loss/nb_classes
+                loss += weights[i]*self.train_criterion(torch.flatten(outs), torch.flatten(labs)).double()
+            loss = loss
 
         else:
             raise Exception('Method should be flatten, nothing, or by_class.')

@@ -70,7 +70,7 @@ class Model():
                 pred = torch.concat((pred, torch.Tensor.cpu(self.forward(flipped_X))))
 
         pred = pred.transpose(0,1)
-        target=target.transpose(0,1)
+        target = target.transpose(0,1)
 
         return pred, target
 
