@@ -275,10 +275,11 @@ def initialize_pretrained_model(new_model, pretrained_model):
 
 
 def write_scores(text, scores, variable, value, precisions, recalls, F1_scores, AUCs):
-    mean_precision, std_precision = np.mean(np.array(precisions)), np.std(np.array(precisions))
-    mean_recalls, std_recalls = np.mean(np.array(recalls)), np.std(np.array(recalls))
-    mean_F1, std_F1 = np.mean(np.array(F1_scores)), np.std(np.array(F1_scores))
-    mean_AUC, std_AUC = np.mean(np.array(AUCs)), np.std(np.array(AUCs))
+    key = 'BL'
+    mean_precision, std_precision = np.mean(np.array(precisions[key])), np.std(np.array(precisions[key]))
+    mean_recalls, std_recalls = np.mean(np.array(recalls[key])), np.std(np.array(recalls[key]))
+    mean_F1, std_F1 = np.mean(np.array(F1_scores[key])), np.std(np.array(F1_scores[key]))
+    mean_AUC, std_AUC = np.mean(np.array(AUCs[key])), np.std(np.array(AUCs[key]))
 
     scores.loc[f'{variable}={value}', :] = [mean_precision, std_precision, mean_recalls, std_recalls, mean_F1, std_F1,
                                             mean_AUC, std_AUC]
