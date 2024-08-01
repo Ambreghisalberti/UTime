@@ -169,9 +169,16 @@ def make_dataloaders_with_stride(windows, **kwargs):
 def add_scores(model, dl, dict):
     dict['models'] += [model.to('cpu')]
     model = model.to(model.device)
-    dict['dl_tests'] += [dl]   # Would need to save this datalaoder on cpu device instead of gpu?
+
     n_classes = model.n_classes
     pred, target = model.compute_pred_and_target(dl)
+
+    i, X, y = next(iter(dl))
+    if isinstance(X, list):
+        dl = DataLoader([(i, [x.to('cpu') for x in X], y.to('cpu')) for i, X, y in dl])
+    else:
+        dl = DataLoader([(i, X.to('cpu'), y.to('cpu')) for i, X, y in dl])
+    dict['dl_tests'] += [dl]  # Would need to save this datalaoder on cpu device instead of gpu?
 
     for i in range(n_classes):
         pred_i = pred[i]
@@ -191,6 +198,7 @@ def add_scores(model, dl, dict):
         dict['max_F1s'][name_class] += [{'max_F1':max_F1, 'prec_maxF1':prec_maxF1, 'recall_maxF1':recall_maxF1}]
 
     return dict
+
 
 
 def plot_mean(reference_x, x_list, y_list, **kwargs):
