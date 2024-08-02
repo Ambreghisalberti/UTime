@@ -42,38 +42,43 @@ class Model():
         return loss / count
 
     def compute_pred_and_target(self, dl, mirrored=False):
-        gc.collect()
-        torch.cuda.empty_cache()
-
-        target = torch.Tensor([])
-        pred = torch.Tensor([])
-
-        for i, X, y in dl:
-            if isinstance(X, tuple):
-                a,b = X
-                X = (a.to(self.device), b.to(self.device))
-            elif isinstance(X, list):
-                X = [X[0].to(self.device), X[1].to(self.device)]
-            else:
-                X = X.to(self.device)
-            target = torch.concat((target, y))
-            pred = torch.concat((pred, torch.Tensor.cpu(self.forward(X))))
+        with torch.no_grad():
             gc.collect()
             torch.cuda.empty_cache()
 
-        if mirrored:
+            target = torch.Tensor([])
+            pred = torch.Tensor([])
+
             for i, X, y in dl:
                 if isinstance(X, tuple):
-                    a, b = X
+                    a,b = X
                     X = (a.to(self.device), b.to(self.device))
                 elif isinstance(X, list):
-                    flipped_X = [X[0].to(self.device).flip(-1), X[1].to(self.device).flip(-1)]
+                    X = [X[0].to(self.device), X[1].to(self.device)]
                 else:
-                    flipped_X = X.to(self.device).flip(-1)
-                target = torch.concat((target, y.flip(-1)))
-                pred = torch.concat((pred, torch.Tensor.cpu(self.forward(flipped_X))))
+                    X = X.to(self.device)
                 gc.collect()
                 torch.cuda.empty_cache()
+                target = torch.concat((target, y))
+                pred = torch.concat((pred, torch.Tensor.cpu(self.forward(X))))
+                gc.collect()
+                torch.cuda.empty_cache()
+
+            if mirrored:
+                for i, X, y in dl:
+                    if isinstance(X, tuple):
+                        a, b = X
+                        X = (a.to(self.device), b.to(self.device))
+                    elif isinstance(X, list):
+                        flipped_X = [X[0].to(self.device).flip(-1), X[1].to(self.device).flip(-1)]
+                    else:
+                        flipped_X = X.to(self.device).flip(-1)
+                    gc.collect()
+                    torch.cuda.empty_cache()
+                    target = torch.concat((target, y.flip(-1)))
+                    pred = torch.concat((pred, torch.Tensor.cpu(self.forward(flipped_X))))
+                    gc.collect()
+                    torch.cuda.empty_cache()
 
         pred = pred.transpose(0,1)
         target = target.transpose(0,1)
