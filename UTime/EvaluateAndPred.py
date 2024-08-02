@@ -1,4 +1,4 @@
-import torch
+import torch, gc
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import ConfusionMatrixDisplay, auc
@@ -42,6 +42,8 @@ class Model():
         return loss / count
 
     def compute_pred_and_target(self, dl, mirrored=False):
+        gc.collect()
+        torch.cuda.empty_cache()
 
         target = torch.Tensor([])
         pred = torch.Tensor([])

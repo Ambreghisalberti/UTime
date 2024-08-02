@@ -1,6 +1,6 @@
 import numpy as np
 from datetime import datetime
-import torch
+import torch, gc
 import time
 import matplotlib.pyplot as plt
 import torch.optim as optim
@@ -47,6 +47,9 @@ class Training():
         self.make_movie = kwargs.get('make_movie', False)
 
     def backward_propagation(self, batch, labels, **kwargs):
+        gc.collect()
+        torch.cuda.empty_cache()
+
         if isinstance(batch, tuple):
             a,b = batch
             batch = (a.double().to(self.model.device), b.double().to(self.model.device))
