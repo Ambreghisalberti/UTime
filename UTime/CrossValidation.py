@@ -113,16 +113,23 @@ def get_loss_functions(loss_function, dl_train, dl_test):
 
 
 def make_dataloaders(windows, **kwargs):
+    if 'train_ratio' in kwargs:
+        train_ratio = kwargs.pop('train_ratio')
+        test_ratio = min(kwargs.pop("test_ratio", 0.2), 1 - train_ratio)
+    else:
+        test_ratio = kwargs.pop("test_ratio", 0.2)
+        train_ratio = 1 - test_ratio
+
     stride = windows.stride
     if stride >= windows.win_length:
-        return make_dataloaders_without_stride(windows, **kwargs)
+        return make_dataloaders_without_stride(windows, train_ratio=train_ratio, test_ratio=test_ratio, **kwargs)
     else:
-        return make_dataloaders_with_stride(windows, **kwargs)
+        return make_dataloaders_with_stride(windows, train_ratio=train_ratio, test_ratio=test_ratio, **kwargs)
 
 
 def make_dataloaders_without_stride(windows, batch_size=10, **kwargs):
-    test_ratio = kwargs.get("test_ratio", 0.2)
-    train_ratio = kwargs.get('train_ratio', 1-test_ratio)
+    train_ratio = kwargs['train_ratio']
+    test_ratio = kwargs['test_ratio']
     if test_ratio + train_ratio < 1:
         train, test, rest = random_split(windows, [train_ratio, test_ratio, 1 - train_ratio - test_ratio])
     else:
@@ -161,8 +168,8 @@ def make_dataloaders_with_stride(windows, **kwargs):
     groups = make_windows_groups(windows, **kwargs)
     rd.shuffle(groups)
 
-    test_ratio = kwargs.get('test_ratio', 0.2)
-    train_ratio = kwargs.get('train_ratio',1-test_ratio)
+    train_ratio = kwargs['train_ratio']
+    test_ratio = kwargs['test_ratio']
 
     train_groups = groups[:int(len(groups) * train_ratio)]
     train_indices = [t for tx in train_groups for t in tx]

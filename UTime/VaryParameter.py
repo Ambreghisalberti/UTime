@@ -55,11 +55,16 @@ def vary_parameter(windows, **kwargs):
     kernel_size = kwargs.pop('kernel_size', 5)
     nb_filters = kwargs.pop('nb_filters', 16)
     train_proportion = kwargs.get('train_proportion', 0.8)
+    test_proportion = kwargs.get('test_proportion', 0.2)
+
+    '''
+    train_proportion = kwargs.get('train_proportion', 0.8)
     test_proportion = kwargs.get('test_proportion', 1 - train_proportion)
     if isinstance(train_proportion, (collections.abc.Sequence, np.ndarray)):
         test_proportion = [min(test_p, 1 - train_p) for test_p, train_p in zip(test_proportion, train_proportion)]
     else:
         test_proportion = min(test_proportion, 1 - train_proportion)
+    '''
 
     loss_function = kwargs.pop('loss_function', 'MSE')
     if 'description' in kwargs:
