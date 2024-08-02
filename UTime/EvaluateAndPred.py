@@ -58,6 +58,8 @@ class Model():
                 X = X.to(self.device)
             target = torch.concat((target, y))
             pred = torch.concat((pred, torch.Tensor.cpu(self.forward(X))))
+            gc.collect()
+            torch.cuda.empty_cache()
 
         if mirrored:
             for i, X, y in dl:
@@ -70,6 +72,8 @@ class Model():
                     flipped_X = X.to(self.device).flip(-1)
                 target = torch.concat((target, y.flip(-1)))
                 pred = torch.concat((pred, torch.Tensor.cpu(self.forward(flipped_X))))
+                gc.collect()
+                torch.cuda.empty_cache()
 
         pred = pred.transpose(0,1)
         target = target.transpose(0,1)
