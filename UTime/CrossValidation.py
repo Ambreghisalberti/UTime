@@ -41,10 +41,9 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
         if "pretrained" in kwargs:
             model = initialize_pretrained_model(model, kwargs["pretrained"])
 
-        dl_train, dl_test = make_dataloaders(windows, test_ratio=kwargs.get('test_ratio', 0.2),
-                                             batch_size=kwargs.get('batch_size',10))
+        dl_train, dl_test = make_dataloaders(windows, **kwargs)
 
-        dict = train_one_iter(model, iter, loss_function, dl_train, dl_test, dict, fig, axes, **kwargs)
+        dict = train_one_iter(model, iter, loss_function, dl_train, dl_test, dict, fig, axes, name=name, **kwargs)
 
     if kwargs.get('verbose', True):
         plot_mean_loss(dict['train_losses'], dict['val_losses'], dict['last_epochs'], fig=fig, ax=axes[0], **kwargs)
@@ -108,6 +107,8 @@ def get_loss_functions(loss_function, dl_train, dl_test):
         train_loss, test_loss = maxF1(), maxF1()
     elif loss_function == 'roc_star':
         train_loss, test_loss = roc_star(), roc_star()
+    else:
+        raise Exception("Unknown loss : loss has not been given, or is not in the list allowed by function get_loss_function!")
     return train_loss, test_loss
 
 
@@ -119,8 +120,14 @@ def make_dataloaders(windows, **kwargs):
         return make_dataloaders_with_stride(windows, **kwargs)
 
 
-def make_dataloaders_without_stride(windows, test_ratio=0.2, batch_size=10, **kwargs):
-    train, test = random_split(windows, [1 - test_ratio, test_ratio])
+def make_dataloaders_without_stride(windows, batch_size=10, **kwargs):
+    test_ratio = kwargs.get("test_ratio", 0.2)
+    train_ratio = kwargs.get('train_ratio', 1-test_ratio)
+    if test_ratio + train_ratio < 1:
+        train, test, rest = random_split(windows, [train_ratio, test_ratio, 1 - train_ratio - test_ratio])
+    else:
+        train, test = random_split(windows, [train_ratio, test_ratio])
+
     dl_train = DataLoader(train, batch_size=batch_size, shuffle=True)
     dl_test = DataLoader(test, shuffle=True)
     return dl_train, dl_test
@@ -155,7 +162,9 @@ def make_dataloaders_with_stride(windows, **kwargs):
     rd.shuffle(groups)
 
     test_ratio = kwargs.get('test_ratio', 0.2)
-    train_groups = groups[:-int(len(groups) * test_ratio)]
+    train_ratio = kwargs.get('train_ratio',1-test_ratio)
+
+    train_groups = groups[:int(len(groups) * train_ratio)]
     train_indices = [t for tx in train_groups for t in tx]
     test_groups = groups[-int(len(groups) * test_ratio):]
     test_indices = [t for tx in test_groups for t in tx]

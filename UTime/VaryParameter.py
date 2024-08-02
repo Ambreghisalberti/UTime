@@ -1,17 +1,19 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-from .architecture import UTime
+from .architectureResNet import UTime
 from .CrossValidation import cross_validation, write_scores
 import numpy as np
-
+import collections.abc
 
 # Cannot work for window_size yet
 def duplicate_to_list(data, nb_values):
-    if not (isinstance(data, list)):
+    if not (isinstance(data, list)) and not (isinstance(data, (collections.abc.Sequence, np.ndarray))):
+        data = [data for i in range(nb_values)]
+    if isinstance(data, str):
         data = [data for i in range(nb_values)]
     return data
 
-
+'''
 def transform_in_lists(dfs):
     for df in dfs:
         if isinstance(df, list):
@@ -20,14 +22,14 @@ def transform_in_lists(dfs):
         dfs[i] = duplicate_to_list(dfs[i], nb_values)
 
     return dfs
-
+'''
 
 def get_variable(parameters):
     variable = ''
     nb_values = 1
     index = -1
     for key in parameters.keys():
-        if isinstance(parameters[key], list):
+        if not(isinstance(parameters[key], str)) and (isinstance(parameters[key], list) or isinstance(parameters[key], (collections.abc.Sequence, np.ndarray))):
             variable = key
             values = parameters[key]
             nb_values = len(values)
@@ -49,10 +51,16 @@ def write_file(text, path):
 
 def vary_parameter(windows, **kwargs):
     plt.ion()
-    depth = kwargs.pop('depth', 6)
+    depth = kwargs.pop('depth', 5)
     kernel_size = kwargs.pop('kernel_size', 5)
     nb_filters = kwargs.pop('nb_filters', 16)
-    test_proportion = kwargs.pop('test_proportion', 0.2)
+    train_proportion = kwargs.get('train_proportion', 0.8)
+    test_proportion = kwargs.get('test_proportion', 1 - train_proportion)
+    if isinstance(train_proportion, (collections.abc.Sequence, np.ndarray)):
+        test_proportion = [min(test_p, 1 - train_p) for test_p, train_p in zip(test_proportion, train_proportion)]
+    else:
+        test_proportion = min(test_proportion, 1 - train_proportion)
+
     loss_function = kwargs.pop('loss_function', 'MSE')
     if 'description' in kwargs:
         description = '_' + kwargs['description']
@@ -65,25 +73,22 @@ def vary_parameter(windows, **kwargs):
                                    "mean_F1", "std_F1", "mean_AUC", "std_AUC"])
 
     parameters = {'depth': depth, 'kernel_size': kernel_size, 'nb_filters': nb_filters,
-                  'test_proportion': test_proportion, 'loss_function': loss_function}
+                  'test_proportion': test_proportion, 'train_proportion':train_proportion,
+                  'loss_function': loss_function}
     parameters, variable, values = transform_in_lists(parameters)
-    depth, kernel_size, nb_filters, test_proportion, loss_function = parameters.values()
+    depth, kernel_size, nb_filters, test_proportion, train_proportion, loss_function = parameters.values()
 
     fig, axes = plt.subplots(ncols=2, nrows=len(depth), figsize=(6, 3 * len(depth)))
     plt.draw()
     nb_iter = kwargs.pop('nb_iter', 5)
 
-    for i, (d, ks, nf, tp, lf) in enumerate(zip(depth, kernel_size, nb_filters, test_proportion, loss_function)):
+    for i, (d, ks, nf, te_p, tr_p, lf) in enumerate(zip(depth, kernel_size, nb_filters, test_proportion, train_proportion, loss_function)):
         value = values[i]
-        name = f'depth={d}_filters={nf}_kernel={ks}_{lf}_testsize={test_proportion}' + description
+        name = f'depth={d}_filters={nf}_kernel={ks}_{lf}_testsize={te_p}_trainsize={tr_p}' + description
         architecture = UTime(1, windows.win_length, len(windows.moments_features),
                              len(windows.spectro_features), d, nf, ks, 2)
-        cv = cross_validation(architecture, windows,
-                                                                                    nb_iter, lf,
-                                                                                    test_ratio=tp, fig=fig,
-                                                                                    ax=axes[i, :],
-                                                                                    name=f'{variable} = {value}',
-                                                                                    **kwargs)
+        cv = cross_validation(architecture, windows, nb_iter, lf, test_ratio=te_p, train_ratio=tr_p, fig=fig,
+                              ax=axes[i, :], name=f'{variable} = {value}', **kwargs)
         pd.to_pickle(cv,f'/home/ghisalberti/BL_encoder_decoder/model/diagnostics/{name}.pkl')
         precisions, recalls, F1_scores = cv['precisions'], cv['recalls'], cv['F1_scores']
         TPRs, FPRs, AUCs = cv['TPRs'], cv['FPRs'], cv['AUCs']
