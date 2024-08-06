@@ -227,7 +227,7 @@ class roc_star(torch.nn.Module):
         self.p = p
         self.gamma = 0
 
-    def forward_one_class(self, input, target):
+    def forward(self, input, target):
         target = target > 0.5
         pos = torch.flatten(input[target])
         neg = torch.flatten(input[~target])
@@ -241,6 +241,7 @@ class roc_star(torch.nn.Module):
         self.gamma = max(1,torch.mean(pos-neg).item()*1.1)
         return loss
 
+    '''
     def forward(self,input,target):
         _, nb_classes, _, _ = input.shape
         loss = 0
@@ -252,6 +253,6 @@ class roc_star(torch.nn.Module):
 
         loss = loss / nb_classes
         return loss
-
+    '''
 
 
