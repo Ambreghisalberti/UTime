@@ -35,6 +35,7 @@ class Architecture(nn.Module, Model):
         self.nb_moments = nb_moments
         self.check_inputs()
         self.batch_norm = kwargs.get('batch_norm', True)
+        self.classifier_activation = kwargs.get('classifier_activation','softmax')
 
 
     def check_inputs(self):
@@ -165,7 +166,10 @@ class Architecture(nn.Module, Model):
         if nb_classes == 1:
             layers.append(nn.Sigmoid())
         else:
-            layers.append(nn.Softmax(dim=1))
+            if self.classifier_activation == 'sigmoid':
+                layers.append(nn.Sigmoid())
+            else:
+                layers.append(nn.Softmax(dim=1))
 
         return nn.Sequential(*layers)
 
