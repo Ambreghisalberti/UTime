@@ -25,6 +25,7 @@ class UTime(Architecture):
         # Encoder layers
         self.encoder = self._build_encoder1D()
         self.encoder2D = self._build_encoder2D(**kwargs)
+        self.common_encoder = self._build_common_encoder(**kwargs)
 
         # Decoder layers
         self.decoder = self._build_decoder()
@@ -144,9 +145,19 @@ class UTime(Architecture):
         a, b, c = spectro.shape
         spectro = spectro.reshape((a, b, 1, c))
         x = torch.cat([spectro, moments], dim=1).double()
+
+        '''
         conv = nn.Conv2d(self.filters[-1] * 2, self.filters[- 1], kernel_size=(1, self.kernels[-1]),
                          padding='same').double().to(self.device)
         x = conv(x.double())
+        '''
+        # Common encoder
+        for layer in self.common_encoder:
+            if isinstance(layer, nn.BatchNorm2d):
+                x = self.apply_batchnorm(x, layer)
+            else:
+                x = layer(x)
+
 
         # Decoder with skip connections
         for i, layer in enumerate(self.decoder):

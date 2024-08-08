@@ -36,6 +36,8 @@ class Architecture(nn.Module, Model):
         self.check_inputs()
         self.batch_norm = kwargs.get('batch_norm', True)
         self.classifier_activation = kwargs.get('classifier_activation','softmax')
+        self.nb_layers_common_encoder = kwargs.get('nb_layers_common_encoder',1)
+        self.nb_layers_classifier = kwargs.get('nb_layers_classifier', 2)
 
 
     def check_inputs(self):
@@ -147,13 +149,22 @@ class Architecture(nn.Module, Model):
 
         return nn.Sequential(*layers).to(self.device)
 
+    def _build_common_encoder(self,**kwargs):
+        layers = []
+        layers.append(nn.Conv2d(self.filters[-1] * 2, self.filters[- 1], kernel_size=(1, self.kernels[-1]),
+                     padding='same'))
+        layers.append(nn.ReLU(inplace=True))
+        for i in range(self.nb_layers_common_encoder - 1):
+            layers.append(nn.Conv2d(self.filters[-1], self.filters[- 1], kernel_size=(1, self.kernels[-1]),
+                                    padding='same'))
+            layers.append(nn.ReLU(inplace=True))
+        return nn.Sequential(*layers)
 
     def _build_classifier(self, **kwargs):
         nb_classes = kwargs.get('nb_classes_classifier',self.n_classes)
-        nb_layers = kwargs.get('nb_layers',1)
 
         layers = [nn.Dropout(self.dropout)]
-        for i in range(nb_layers-1):
+        for i in range(self.nb_layers_classifier-1):
             layers.append(Conv2d(self.filters[0], self.filters[0], kernel_size=(1, self.kernels[0]), padding='same'))
             if self.batch_norm:
                 layers.append(BatchNorm2d(num_features=self.filters[0]))

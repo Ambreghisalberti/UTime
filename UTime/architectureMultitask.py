@@ -18,8 +18,6 @@ class UTime(Architecture):
 
         super(UTime, self).__init__(n_classes, n_time, nb_moments, nb_channels_spectro, depth,
                  filters, kernels, poolings, **kwargs)
-        self.nb_layers_classifier = kwargs.get('nb_layers_classifier', 2)
-        self.nb_layers_common_encoder = kwargs.get('nb_layers_common_encoder',1)
 
         # Encoder layers
         self.encoder = self._build_encoder1D()
@@ -48,16 +46,6 @@ class UTime(Architecture):
 
         return nn.Sequential(*layers)
 
-    def _build_common_encoder(self):
-        layers = []
-        layers.append(nn.Conv2d(self.filters[-1] * 2, self.filters[- 1], kernel_size=(1, self.kernels[-1]),
-                     padding='same'))
-        layers.append(nn.ReLU(inplace=True))
-        for i in range(self.nb_layers_common_encoder - 1):
-            layers.append(nn.Conv2d(self.filters[-1], self.filters[- 1], kernel_size=(1, self.kernels[-1]),
-                                    padding='same'))
-            layers.append(nn.ReLU(inplace=True))
-        return nn.Sequential(*layers)
 
     def _build_decoder(self):
         layers = []
