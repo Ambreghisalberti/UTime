@@ -235,6 +235,11 @@ def add_scores(model, dl, dict):
 
 
 def plot_mean(reference_x, x_list, y_list, **kwargs):
+    min_mean = np.max(np.array([np.min(x_list[i]) for i in range(len(x_list))]))
+    max_mean = np.min(np.array([np.max(x_list[i]) for i in range(len(x_list))]))
+    reference_x = reference_x[reference_x>=min_mean]
+    reference_x = reference_x[reference_x<=max_mean]
+
     x_list, y_list = np.array(x_list), np.array(y_list)
 
     if 'fig' in kwargs and 'ax' in kwargs:
@@ -295,8 +300,8 @@ def plot_mean_recall_precision(models,dl_tests, fig, ax, **kwargs):
         a, b, c, d = target.size()
         plt.axhline(target.sum() / (a * b * c * d), linestyle='--', color='grey', alpha=0.5)
 
-        all_precisions.append(precisions)
-        all_recalls.append(recalls)
+        all_precisions.append(precisions[1:-1])
+        all_recalls.append(recalls[1:-1])
 
     fig, ax = plot_mean(np.linspace(0, 1, 1000), all_recalls, all_precisions, fig=fig, ax=ax)
 
