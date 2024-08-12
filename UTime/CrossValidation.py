@@ -28,7 +28,7 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
         fig = kwargs.pop('fig')
         axes = kwargs.pop('ax')
     else:
-        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(6, 3))
+        fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(9, 3))
 
     architecture = architecture.double()
     dict = initialize_empty_scores(windows)
@@ -48,6 +48,7 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
     if kwargs.get('verbose', True):
         plot_mean_loss(dict['train_losses'], dict['val_losses'], dict['last_epochs'], fig=fig, ax=axes[0], **kwargs)
         plot_mean_ROC(dict['FPRs'], dict['TPRs'], dict['AUCs'], fig=fig, ax=axes[1])
+        plot_mean_recall_precision(dict['models'],dict['dl_tests'], fig, axes[2])
     plt.tight_layout()
     plt.draw()
 
@@ -189,11 +190,27 @@ def add_scores(model, dl, dict):
     n_classes = model.n_classes
     pred, target = model.compute_pred_and_target(dl)
 
+    indices,all_y = [],[]
     i, X, y = next(iter(dl))
     if isinstance(X, list):
-        dl = DataLoader([(i, [x.to('cpu') for x in X], y.to('cpu')) for i, X, y in dl])
+        all_moments, all_spectro = [],[]
     else:
-        dl = DataLoader([(i, X.to('cpu'), y.to('cpu')) for i, X, y in dl])
+        all_X = []
+
+    for i, X, y in dl:
+        indices += i
+        all_y += y.to('cpu')
+        if isinstance(X, list):
+            moments, spectro = X
+            all_moments += moments.to('cpu')
+            all_spectro += spectro.to('cpu')
+        else:
+            all_X += X.to('cpu')
+
+    if isinstance(X, list):
+        dl = DataLoader([(i, [x1,x2], y) for i, x1,x2, y in zip(indices, all_moments,all_spectro,all_y)])
+    else:
+        dl = DataLoader([(i, X, y) for i, X, y in zip(indices, all_X, all_y)])
     dict['dl_tests'] += [dl]  # Would need to save this datalaoder on cpu device instead of gpu?
 
     for i in range(n_classes):
@@ -258,6 +275,39 @@ def plot_mean_ROC(FPRs, TPRs, AUCs, fig, ax, **kwargs):
     plt.tight_layout()
 
     #plt.close()
+
+def plot_mean_recall_precision(models,dl_tests, fig, ax, **kwargs):
+    ax.cla()
+    all_precisions, all_recalls = [],[]
+
+    for i,model in enumerate(models):
+        precisions, recalls = [], []
+        pred, target = model.compute_pred_and_target(dl_tests[i])
+        index_BL = model.label_names.index('label_BL')
+        a,b,c,d = target.shape
+        pred, target = pred[index_BL].reshape((1,b,c,d)), target[index_BL].reshape((1,b,c,d))
+
+        for threshold in np.linspace(0, 1, 1000)[1:-1]:
+            precision, recall, F1 = model.scores(threshold=threshold, prediction=pred, target=target, verbose=False)
+            precisions.append(precision)
+            recalls.append(recall)
+
+        a, b, c, d = target.size()
+        plt.axhline(target.sum() / (a * b * c * d), linestyle='--', color='grey', alpha=0.5)
+
+        all_precisions.append(precisions)
+        all_recalls.append(recalls)
+
+    fig, ax = plot_mean(np.linspace(0, 1, 1000), all_recalls, all_precisions, fig=fig, ax=ax)
+
+    ax.set_xlabel('Recall')
+    ax.set_ylabel('Precision')
+    ax.title.set_text(f"BL Recall-Precision for the cross-validation")
+    ax.set_ylim(0, 1)
+    ax.set_xlim(0, 1)
+    display.clear_output(wait=True)
+    display.display(plt.gcf())
+    plt.tight_layout()
 
 
 def plot_mean_loss(train_losses, val_losses, last_epochs, fig, ax, **kwargs):
