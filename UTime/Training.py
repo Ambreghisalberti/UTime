@@ -247,6 +247,15 @@ class Training():
             ax.legend(loc='center left', bbox_to_anchor = (1, 0), fancybox=True, shadow=True)
         plt.tight_layout()
         plt.draw()
+
+        if 'ax_recall_precision' in kwargs:
+            ax = kwargs['ax_recall_precision']
+            ax.cla()
+            self.model.plot_recall_precision(dl=self.dltest,fig=fig,ax=ax)
+
+        plt.tight_layout()
+        plt.draw()
+
         if self.make_movie:
             path = '/home/ghisalberti/BL_encoder_decoder/model/movies/' + self.name + '_{:04d}.png'.format(self.current_epoch)
             plt.savefig(path)

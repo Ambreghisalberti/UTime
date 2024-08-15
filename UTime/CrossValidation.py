@@ -28,7 +28,12 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
         fig = kwargs.pop('fig')
         axes = kwargs.pop('ax')
     else:
-        fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(9, 3))
+        ncols=1
+        if kwargs.get('plot_ROC',False):
+            ncols += 1
+        if kwargs.get('plot_recall_precision',False):
+            ncols += 1
+        fig, axes = plt.subplots(nrows=1, ncols=ncols, figsize=(3*ncols, 3))
 
     architecture = architecture.double()
     dict = initialize_empty_scores(windows)
@@ -72,8 +77,13 @@ def train_one_iter(model0, iter, loss_function, dl_train, dl_test, dict, fig, ax
 
 
     if kwargs.get('plot_ROC', False):
-        training.fit(verbose=kwargs.pop('verbose',False), early_stop=kwargs.pop('early_stop', True), patience=kwargs.pop('patience', 40),
-                     fig=fig, ax=axes[0], ax_ROC=axes[1], label=True, name=name + f'_iter{iter}', **kwargs)
+        if kwargs.get('plot_recall_precision',False):
+            training.fit(verbose=kwargs.pop('verbose',False), early_stop=kwargs.pop('early_stop', True), patience=kwargs.pop('patience', 40),
+                     fig=fig, ax=axes[0], ax_ROC=axes[1], ax_recall_precision = axes[2], label=True, name=name + f'_iter{iter}', **kwargs)
+        else:
+            training.fit(verbose=kwargs.pop('verbose', False), early_stop=kwargs.pop('early_stop', True),
+                         patience=kwargs.pop('patience', 40),
+                         fig=fig, ax=axes[0], ax_ROC=axes[1], label=True, name=name + f'_iter{iter}', **kwargs)
 
     else:
         training.fit(verbose=kwargs.pop('verbose',False), early_stop=kwargs.pop('early_stop', True), patience=kwargs.pop('patience', 40),

@@ -204,6 +204,41 @@ class Model():
 
         return FPR, TPR
 
+    def plot_recall_precision(self, **kwargs):
+        if 'fig' not in kwargs or 'ax' not in kwargs:
+            fig,ax = plt.subplots(ncols=1,nrows=1,figsize=(5,5))
+        else:
+            fig, ax = kwargs['fig'], kwargs['ax']
+
+        if 'pred' not in kwargs or 'target' not in kwargs:
+            if 'dl' not in kwargs:
+                raise Exception("Either pred and target must be given to plot_recall_precision, or dl.")
+            dl = kwargs['dl']
+            pred, target = self.compute_pred_and_target(dl)
+        else:
+            pred, target = kwargs['pred'], kwargs['target']
+        index_BL = self.label_names.index('label_BL')
+        a, b, c, d = target.shape
+        pred, target = pred[index_BL].reshape((1, b, c, d)), target[index_BL].reshape((1, b, c, d))
+
+        precisions, recalls = [], []
+        for threshold in np.linspace(0, 1, 1000)[1:-1]:
+            precision, recall, F1 = self.scores(threshold=threshold, prediction=pred, target=target, verbose=False)
+            precisions.append(precision)
+            recalls.append(recall)
+
+        a, b, c, d = target.size()
+        ax.axhline(target.sum() / (a * b * c * d), linestyle='--', color='grey', alpha=0.5)
+        ax.scatter(recalls, precisions, s=0.5)
+
+        ax.set_xlabel('Recall')
+        ax.set_ylabel('Precision')
+        ax.title.set_text(f"BL Recall-Precision")
+        ax.set_ylim(0, 1)
+        ax.set_xlim(0, 1)
+        plt.tight_layout()
+
+
     def find_best_threshold(self, **kwargs):
         if 'pred' not in kwargs or 'target' not in kwargs:
             dl = kwargs.get('dl')
