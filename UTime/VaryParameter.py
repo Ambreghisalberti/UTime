@@ -83,7 +83,7 @@ def vary_parameter(windows, **kwargs):
     parameters, variable, values = transform_in_lists(parameters)
     depth, kernel_size, nb_filters, test_proportion, train_proportion, loss_function = parameters.values()
 
-    fig, axes = plt.subplots(ncols=2, nrows=len(depth), figsize=(6, 3 * len(depth)))
+    fig, axes = plt.subplots(ncols=3, nrows=len(depth), figsize=(9, 3 * len(depth)))
     plt.draw()
     nb_iter = kwargs.pop('nb_iter', 5)
 
