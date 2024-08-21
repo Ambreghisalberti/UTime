@@ -21,6 +21,7 @@ class Training():
         self.dltest = kwargs.get('dltest')
         self.training_loss = []
         self.mirrored = kwargs.get("mirrored", True)
+        self.auc_bl_values = []
 
         self.validation = kwargs.get('validation', False)
         self.dlval = kwargs.get('dlval')
@@ -45,7 +46,8 @@ class Training():
 
         self.name = kwargs.get('name', str(datetime.now())[:10])
         self.make_movie = kwargs.get('make_movie', False)
-
+        print(len(self.dltrain))
+        
     def backward_propagation(self, batch, labels, **kwargs):
         gc.collect()
         torch.cuda.empty_cache()
@@ -130,8 +132,8 @@ class Training():
             self.val_loss.append(self.model.evaluate(self.dlval, self.val_criterion, mirrored=self.mirrored))
 
         if self.verbose_plot:
-            fig, ax = kwargs.pop('fig'), kwargs.pop('ax')
-            self.info(fig=fig, ax=ax, **kwargs)
+            fig, ax, ax_auc = kwargs.pop('fig'), kwargs.pop('ax'), kwargs.pop('ax_auc')
+            self.info(fig=fig, ax=ax, ax_auc = ax_auc, **kwargs)
 
         if self.variable_lr:
             self.scheduler.step()
@@ -191,10 +193,11 @@ class Training():
             print(f"Total training done in {t_end - t_begin} seconds and {self.stop_epoch} epochs.")
             fig=kwargs.pop('fig')
             ax=kwargs.pop('ax')
+            ax_auc=kwargs.pop('ax_auc')
             if early_stop:
-                self.info(early_stopping=early_stopping, fig=fig, ax=ax, label=True, **kwargs)
+                self.info(early_stopping=early_stopping, fig=fig, ax=ax, ax_auc=ax_auc, label=True, **kwargs)
             else:
-                self.info(fig=fig, ax=ax, label=True, **kwargs)
+                self.info(fig=fig, ax=ax, ax_auc=ax_auc,label=True, **kwargs)
 
         plt.tight_layout()
         #plt.close()
@@ -239,6 +242,9 @@ class Training():
                 name_class = self.model.label_names[i].split('_')[1]
                 ax.scatter(FPR, TPR, s=0.1, label=name_class)
                 title += f'\nAUC {name_class} = {round(auc(FPR, TPR),3)}'
+                if name_class=='BL':
+                    self.auc_bl_values.append(auc(FPR, TPR))
+
             ax.set_title(title)
             ax.plot(np.linspace(0,1,100),np.linspace(0,1,100),linestyle='--', alpha=0.5,
                         color='grey')
@@ -255,6 +261,25 @@ class Training():
 
         plt.tight_layout()
         plt.draw()
+
+        if 'ax_auc' in kwargs:
+            ax = kwargs['ax_auc']
+            ax.cla()
+            ax.plot(np.arange(self.current_epoch),self.auc_bl_values)
+            ax.set_xlabel("Epochs")
+            ax.set_ylabel("AUC")
+            ax.title.set_text("Mean AUC evolution\nduring training")
+        plt.tight_layout()
+        plt.draw()
+
+        if 'ax_recall_precision' in kwargs:
+            ax = kwargs['ax_recall_precision']
+            ax.cla()
+            self.model.plot_recall_precision(dl=self.dltest,fig=fig,ax=ax)
+
+        plt.tight_layout()
+        plt.draw()
+
 
         if self.make_movie:
             path = '/home/ghisalberti/BL_encoder_decoder/model/movies/' + self.name + '_{:04d}.png'.format(self.current_epoch)
