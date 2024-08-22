@@ -71,7 +71,7 @@ def train_one_iter(model0, iter, loss_function, dl_train, dl_test, dict, fig, ax
     train_loss, test_loss = get_loss_functions(loss_function, dl_train, dl_test)
 
     name = kwargs.pop('name', str(datetime.now())[:10])
-    training = Training(model, 2000, dl_train, dltest=dl_test, dlval=dl_test, validation=True,
+    training = Training(model, kwargs.pop('epochs',2000), dl_train, dltest=dl_test, dlval=dl_test, validation=True,
                         # To make it more general, get those parameters from kwargs?
                         train_criterion=train_loss, val_criterion=test_loss,
                         learning_rate=kwargs.get('lr', 0.001), verbose_plot=True, mirrored=True,
