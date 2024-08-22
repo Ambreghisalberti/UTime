@@ -47,7 +47,7 @@ class Training():
         self.name = kwargs.get('name', str(datetime.now())[:10])
         self.make_movie = kwargs.get('make_movie', False)
         print(len(self.dltrain))
-        
+
     def backward_propagation(self, batch, labels, **kwargs):
         gc.collect()
         torch.cuda.empty_cache()

@@ -20,7 +20,8 @@ def initialize_empty_scores(windows):
     precisions, recalls, F1_scores, FPRs, TPRs, AUCs, max_F1s = (
         {f"{windows.label[i].split('_')[1]}": [] for i in range(len(windows.label))} for i in range(7))
     return {'models':[], 'precisions':precisions, 'recalls':recalls, 'F1_scores':F1_scores, 'FPRs':FPRs, 'TPRs':TPRs,
-            'AUCs':AUCs, 'max_F1s':max_F1s, 'train_losses':[], 'val_losses':[], 'last_epochs':[], 'dl_tests':[]}
+            'AUCs':AUCs, 'max_F1s':max_F1s, 'train_losses':[], 'val_losses':[], 'last_epochs':[], 'dl_tests':[],
+            'auc_bl_values':[]}
 
 
 def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
@@ -28,7 +29,7 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
         fig = kwargs.pop('fig')
         axes = kwargs.pop('ax')
     else:
-        ncols=1
+        ncols=2
         if kwargs.get('plot_ROC',False):
             ncols += 1
         if kwargs.get('plot_recall_precision',False):
@@ -54,6 +55,7 @@ def cross_validation(architecture, windows, nb_iter, loss_function, **kwargs):
         plot_mean_loss(dict['train_losses'], dict['val_losses'], dict['last_epochs'], fig=fig, ax=axes[0], **kwargs)
         plot_mean_ROC(dict['FPRs'], dict['TPRs'], dict['AUCs'], fig=fig, ax=axes[1])
         plot_mean_recall_precision(dict['models'],dict['dl_tests'], fig, axes[2])
+        plot_mean_auc(dict['last_epochs'], dict['auc_bl_values'],fig, axes[-1])
     plt.tight_layout()
     plt.draw()
 
@@ -79,20 +81,22 @@ def train_one_iter(model0, iter, loss_function, dl_train, dl_test, dict, fig, ax
     if kwargs.get('plot_ROC', False):
         if kwargs.get('plot_recall_precision',False):
             training.fit(verbose=kwargs.pop('verbose',False), early_stop=kwargs.pop('early_stop', True), patience=kwargs.pop('patience', 40),
-                     fig=fig, ax=axes[0], ax_ROC=axes[1], ax_recall_precision = axes[2], label=True, name=name + f'_iter{iter}', **kwargs)
+                     fig=fig, ax=axes[0], ax_ROC=axes[1], ax_recall_precision = axes[2], ax_auc=axes[-1],
+                         label=True, name=name + f'_iter{iter}', **kwargs)
         else:
             training.fit(verbose=kwargs.pop('verbose', False), early_stop=kwargs.pop('early_stop', True),
                          patience=kwargs.pop('patience', 40),
-                         fig=fig, ax=axes[0], ax_ROC=axes[1], label=True, name=name + f'_iter{iter}', **kwargs)
+                         fig=fig, ax=axes[0], ax_ROC=axes[1], ax_auc=axes[-1], label=True, name=name + f'_iter{iter}', **kwargs)
 
     else:
         training.fit(verbose=kwargs.pop('verbose',False), early_stop=kwargs.pop('early_stop', True), patience=kwargs.pop('patience', 40),
-                     fig=fig, ax=axes[0], label=True, name=name + f'_iter{iter}', **kwargs)
+                     fig=fig, ax=axes[0], ax_auc=axes[-1], label=True, name=name + f'_iter{iter}', **kwargs)
 
     dict = add_scores(training.model.to(training.model.device), dl_test, dict)
     dict['train_losses'] += [list(torch.Tensor(training.training_loss).numpy())]
     dict['val_losses'] += [list(torch.Tensor(training.val_loss).numpy())]
     dict['last_epochs'] += [training.current_epoch]
+    dict['auc_bl_values'] += [training.auc_bl_values]
 
     return dict
 
@@ -291,6 +295,24 @@ def plot_mean_ROC(FPRs, TPRs, AUCs, fig, ax, **kwargs):
 
     #plt.close()
 
+def plot_mean_auc(last_epochs, auc_values, fig, ax, **kwargs):
+    max_epoch = np.min(last_epochs)
+    epochs = [list(np.arange(max_epoch)) for e in last_epochs]
+    reference_epochs = np.arange(max_epoch)
+    auc_values = [aucs[:max_epoch] for aucs in auc_values]
+
+    ax.cla()
+    fig, ax = plot_mean(reference_epochs, epochs, auc_values, color='green', color_mean='blue',
+                        fig=fig, ax=ax)
+
+    ax.set_xlabel("Epochs")
+    ax.set_ylabel("AUC")
+    ax.title.set_text("Mean AUC evolution\nduring training")
+    display.clear_output(wait=True)
+    display.display(plt.gcf())
+    plt.tight_layout()
+
+
 def plot_mean_recall_precision(models,dl_tests, fig, ax, **kwargs):
     ax.cla()
     all_precisions, all_recalls = [],[]
@@ -308,7 +330,7 @@ def plot_mean_recall_precision(models,dl_tests, fig, ax, **kwargs):
             recalls.append(recall)
 
         a, b, c, d = target.size()
-        plt.axhline(target.sum() / (a * b * c * d), linestyle='--', color='grey', alpha=0.5)
+        ax.axhline(target.sum() / (a * b * c * d), linestyle='--', color='grey', alpha=0.5)
 
         all_precisions.append(precisions[1:-1])
         all_recalls.append(recalls[1:-1])
@@ -317,7 +339,7 @@ def plot_mean_recall_precision(models,dl_tests, fig, ax, **kwargs):
 
     ax.set_xlabel('Recall')
     ax.set_ylabel('Precision')
-    ax.title.set_text(f"BL Recall-Precision for the cross-validation")
+    ax.title.set_text(f"BL Recall-Precision\nfor the cross-validation")
     ax.set_ylim(0, 1)
     ax.set_xlim(0, 1)
     display.clear_output(wait=True)
