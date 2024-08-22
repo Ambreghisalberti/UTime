@@ -265,7 +265,7 @@ class Training():
         if 'ax_auc' in kwargs:
             ax = kwargs['ax_auc']
             ax.cla()
-            ax.plot(np.arange(self.current_epoch),self.auc_bl_values)
+            ax.plot(np.arange(len(self.auc_bl_values)),self.auc_bl_values)
             ax.set_xlabel("Epochs")
             ax.set_ylabel("AUC")
             ax.title.set_text("Mean AUC evolution\nduring training")
