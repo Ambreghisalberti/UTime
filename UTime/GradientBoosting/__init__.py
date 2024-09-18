@@ -9,6 +9,7 @@ from datetime import timedelta
 import random as rd
 from sklearn.metrics import auc
 import warnings
+from datetime import datetime
 
 
 def split(all_data, columns, **kwargs):
@@ -180,7 +181,7 @@ def learning_curve(model, xtrain, ytrain, xtest, ytest, **kwargs):
     return train_loss, test_loss
 
 
-def diagnostic(gb, xtrain, ytrain, xtest, ytest):
+def diagnostic(gb, xtrain, ytrain, xtest, ytest, **kwargs):
     fig, ax = plt.subplots(ncols=3, figsize=(15,5))
     train_loss, test_loss = learning_curve(gb, xtrain, ytrain, xtest, ytest, ax=ax[0])
     recalls, precisions = recall_precision_curve(gb, xtest, ytest, ax=ax[1])
@@ -189,4 +190,52 @@ def diagnostic(gb, xtrain, ytrain, xtest, ytest):
             'recalls': recalls, 'precisions': precisions,
             'FPRs': FPRs, 'TPRs': TPRs, 'auc_value': auc_value}
     fig.tight_layout()
+    name= kwargs.get('name',str(datetime.now())[:10])
+    fig.savefig(f'/home/ghisalberti/GradientBoosting/diagnostics/diag_{name}.jpg')
     return diag
+
+
+def order_feature_importances(model, columns):
+    df = pd.DataFrame(model.feature_importances_, columns=['feature_importance'], index=columns)
+    return df.sort_values(by='feature_importance')
+
+
+def all_pred(model, df, columns):
+    scaler = StandardScaler()
+    data = df[columns].copy().dropna()
+    data.loc[:, :] = scaler.fit_transform(data.loc[:, :].values)
+
+    pred = model.predict_proba(data.values)[:, 1]
+    pred_df = pd.DataFrame(pred, index=data.index.values, columns=['pred_proba_gradboost'])
+    pred_df = pred_df.resample('5S').mean()
+    return pred_df
+
+
+def effect_trainset_size(train_proportions, df, columns, **kwargs):
+    all_precisions, all_recalls, all_aucs = [], [], []
+    train_sizes = []
+    for tp in train_proportions:
+        print(f'Train proportion = {tp}:')
+        results = train_model(df, columns, method_split='temporal', n_iter=5,
+                              test_size=1 - tp, **kwargs)
+
+        precisions, recalls, AUCs, Xtrain, Xtest, ytrain, ytest, gb = results
+        train_sizes.append(len(Xtrain))
+        all_precisions.append(np.median(np.array(precisions)))
+        all_recalls.append(np.median(np.array(recalls)))
+        all_aucs.append(np.median(np.array(AUCs)))
+
+    if kwargs.get('verbose',False):
+        if 'ax' in kwargs:
+            ax = kwargs['ax']
+        else:
+            _, ax = plt.subplots()
+        ax.plot(train_sizes, all_precisions, label='Precision')
+        ax.plot(train_sizes, all_recalls, label='Recall')
+        ax.plot(train_sizes, all_aucs, label='AUC')
+        ax.legend()
+        ax.set_xlabel('NUmber of points in trainset')
+        ax.set_ylabel('Scores')
+        ax.set_title('Effect on trainset size on performance')
+
+    return all_precisions, all_recalls, all_aucs, train_sizes
