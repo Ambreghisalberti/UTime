@@ -168,3 +168,13 @@ def learning_curve(model, xtrain, ytrain, xtest, ytest):
     plt.show()
 
     return train_loss, test_loss
+
+
+def diagnostic(gb, xtrain, ytrain, xtest, ytest):
+    train_loss, test_loss = learning_curve(gb, xtrain, ytrain, xtest, ytest)
+    recalls, precisions = recall_precision_curve(gb, xtest, ytest)
+    FPRs, TPRs, auc_value = ROC(gb, xtest, ytest, verbose=True)
+    diag = {'train_loss': train_loss, 'test_loss': test_loss,
+            'recalls': recalls, 'precisions': precisions,
+            'FPRs': FPRs, 'TPRs': TPRs, 'auc_value': auc_value}
+    return diag
