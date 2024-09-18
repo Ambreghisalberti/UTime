@@ -18,7 +18,7 @@ def split(all_data, columns, **kwargs):
         Xtrain, Xtest, ytrain, ytest = train_test_split(all_data.loc[:, columns].values, all_data.label_BL.values,
                                                         test_size=kwargs.get('test_size', 0.2))
     elif method_split == 'temporal':
-        Xtrain, Xtest, ytrain, ytest = temporal_split(all_data.loc[:, columns + ['label_BL']], columns, ['label_BL'],
+        Xtrain, Xtest, ytrain, ytest = temporal_split(all_data.loc[:, list(columns) + ['label_BL']], columns, ['label_BL'],
                                                       test_size=kwargs.get('test_size', 0.2))
     else:
         raise Exception(f"Split method should be 'random' or 'temporal', but is {method_split}.")
@@ -212,12 +212,15 @@ def all_pred(model, df, columns):
 
 
 def effect_trainset_size(train_proportions, df, columns, **kwargs):
+    verbose_trainset_effect = kwargs.pop('verbose_trainset_effect', False)
+    n_iter = kwargs.pop('n_iter', 5)
+
     all_precisions, all_recalls, all_aucs = [], [], []
     train_sizes = []
     for tp in train_proportions:
         print(f'Train proportion = {tp}:')
-        results = train_model(df, columns, method_split='temporal', n_iter=5,
-                              test_size=1 - tp, **kwargs)
+        results = train_model(df, columns, method_split='temporal',
+                              n_iter=n_iter, test_size=1 - tp, **kwargs)
 
         precisions, recalls, AUCs, Xtrain, Xtest, ytrain, ytest, gb = results
         train_sizes.append(len(Xtrain))
@@ -225,7 +228,7 @@ def effect_trainset_size(train_proportions, df, columns, **kwargs):
         all_recalls.append(np.median(np.array(recalls)))
         all_aucs.append(np.median(np.array(AUCs)))
 
-    if kwargs.get('verbose',False):
+    if verbose_trainset_effect:
         if 'ax' in kwargs:
             ax = kwargs['ax']
         else:
