@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from datetime import timedelta
 import random as rd
 from sklearn.metrics import auc
+import warnings
 
 
 def split(all_data, columns, **kwargs):
@@ -55,6 +56,7 @@ def compute_scores(pred, truth):
 
 
 def train_model(df, columns, **kwargs):
+    warnings.filterwarnings("ignore")
     scaler = StandardScaler()
     data = df.copy().dropna()
     data.loc[:, columns] = scaler.fit_transform(data.loc[:, columns].values)
