@@ -121,17 +121,20 @@ def ROC(model, xtest, ytest, **kwargs):
 
     auc_value = auc(FPRs, TPRs)
     if kwargs.get('verbose', False):
-        plt.figure()
-        plt.scatter(FPRs, TPRs)
-        plt.xlabel('FPR')
-        plt.ylabel('TPR')
-        plt.plot(np.linspace(0, 1, 100), np.linspace(0, 1, 100), linestyle='--', color='grey', alpha=0.5)
-        plt.title(f'ROC, AUC = {round(auc_value, 3)}')
-        plt.show()
+        if 'ax' not in kwargs:
+            _, ax = plt.subplots()
+        else:
+            ax = kwargs['ax']
+
+        ax.scatter(FPRs, TPRs)
+        ax.set_xlabel('FPR')
+        ax.set_ylabel('TPR')
+        ax.plot(np.linspace(0, 1, 100), np.linspace(0, 1, 100), linestyle='--', color='grey', alpha=0.5)
+        ax.set_title(f'ROC, AUC = {round(auc_value, 3)}')
     return FPRs, TPRs, auc_value
 
 
-def recall_precision_curve(model, xtest, ytest):
+def recall_precision_curve(model, xtest, ytest, **kwargs):
     proba = model.predict_proba(xtest)[:, 1]
     ytest = ytest.flatten()
 
@@ -142,16 +145,18 @@ def recall_precision_curve(model, xtest, ytest):
         precisions.append(precision)
         recalls.append(recall)
 
-    plt.figure()
-    plt.scatter(recalls, precisions)
-    plt.xlabel('Recall')
-    plt.ylabel('Precision')
-    plt.axhline(ytest.sum() / len(ytest), linestyle='--', color='grey', alpha=0.5)
-    plt.show()
+    if 'ax' not in kwargs:
+        _, ax = plt.subplots()
+    else:
+        ax = kwargs['ax']
+    ax.scatter(recalls, precisions)
+    ax.set_xlabel('Recall')
+    ax.set_ylabel('Precision')
+    ax.axhline(ytest.sum() / len(ytest), linestyle='--', color='grey', alpha=0.5)
     return recalls, precisions
 
 
-def learning_curve(model, xtrain, ytrain, xtest, ytest):
+def learning_curve(model, xtrain, ytrain, xtest, ytest, **kwargs):
     ytrain = ytrain.flatten()
     train_loss = [np.mean((np.array(proba[:, 1]) - np.array(ytrain)) ** 2) for proba in
                   model.staged_predict_proba(xtrain)]
@@ -160,23 +165,28 @@ def learning_curve(model, xtrain, ytrain, xtest, ytest):
     test_loss = [np.mean((np.array(proba[:, 1]) - np.array(ytest)) ** 2) for proba in
                  model.staged_predict_proba(xtest)]
 
-    plt.figure()
-    plt.plot(np.arange(len(train_loss)), train_loss, label='Train loss')
-    plt.plot(np.arange(len(test_loss)), test_loss, label='Test loss')
-    plt.legend()
-    plt.xlabel('Epochs')
-    plt.ylabel('MSE')
-    plt.title('Loss through training')
-    plt.show()
+    if 'ax' not in kwargs:
+        _, ax = plt.subplots()
+    else:
+        ax = kwargs['ax']
+
+    ax.plot(np.arange(len(train_loss)), train_loss, label='Train loss')
+    ax.plot(np.arange(len(test_loss)), test_loss, label='Test loss')
+    ax.legend()
+    ax.set_xlabel('Epochs')
+    ax.set_ylabel('MSE')
+    ax.set_title('Loss through training')
 
     return train_loss, test_loss
 
 
 def diagnostic(gb, xtrain, ytrain, xtest, ytest):
-    train_loss, test_loss = learning_curve(gb, xtrain, ytrain, xtest, ytest)
-    recalls, precisions = recall_precision_curve(gb, xtest, ytest)
-    FPRs, TPRs, auc_value = ROC(gb, xtest, ytest, verbose=True)
+    fig, ax = plt.subplots(ncols=3, figsize=(15,5))
+    train_loss, test_loss = learning_curve(gb, xtrain, ytrain, xtest, ytest, ax=ax[0])
+    recalls, precisions = recall_precision_curve(gb, xtest, ytest, ax=ax[1])
+    FPRs, TPRs, auc_value = ROC(gb, xtest, ytest, verbose=True, ax=ax[2])
     diag = {'train_loss': train_loss, 'test_loss': test_loss,
             'recalls': recalls, 'precisions': precisions,
             'FPRs': FPRs, 'TPRs': TPRs, 'auc_value': auc_value}
+    fig.tight_layout()
     return diag
