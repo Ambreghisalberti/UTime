@@ -18,8 +18,8 @@ def split(all_data, columns, **kwargs):
         Xtrain, Xtest, ytrain, ytest = train_test_split(all_data.loc[:, columns].values, all_data.label_BL.values,
                                                         test_size=kwargs.get('test_size', 0.2))
     elif method_split == 'temporal':
-        Xtrain, Xtest, ytrain, ytest = temporal_split(all_data.loc[:, list(columns) + ['label_BL']], columns, ['label_BL'],
-                                                      test_size=kwargs.get('test_size', 0.2))
+        Xtrain, Xtest, ytrain, ytest = temporal_split(all_data.loc[:, list(columns) + ['label_BL']], columns,
+                                                      ['label_BL'], test_size=kwargs.get('test_size', 0.2))
     else:
         raise Exception(f"Split method should be 'random' or 'temporal', but is {method_split}.")
     return Xtrain, Xtest, ytrain.astype('int'), ytest.astype('int')
@@ -31,7 +31,8 @@ def temporal_split(data, columns, label_columns=None, test_size=0.2):
     dftrain, dftest = pd.DataFrame([], columns=data.columns), pd.DataFrame([], columns=data.columns)
     months = pd.date_range(start=data.index.values[0], end=data.index.values[-1], freq=timedelta(days=30))
     for i in range(len(months) - 1):
-        temp = data[months[i]:months[i + 1]]
+        temp = data[months[i]:months[i + 1]].iloc[:-1,:]
+        # The goal is to not take the last point, as it will also be part of the next month
         len_test = int(len(temp) * test_size)
         indice = rd.randint(0, len(temp) - len_test)
         temp_test = temp.iloc[indice:indice + len_test]
@@ -215,7 +216,8 @@ def effect_trainset_size(train_proportions, df, columns, **kwargs):
     verbose_trainset_effect = kwargs.pop('verbose_trainset_effect', False)
     n_iter = kwargs.pop('n_iter', 5)
 
-    all_precisions, all_recalls, all_aucs = [], [], []
+    median_precisions, median_recalls, median_aucs = [], [], []
+    std_precisions, std_recalls, std_aucs = [], [], []
     train_sizes = []
     for tp in train_proportions:
         print(f'Train proportion = {tp}:')
@@ -224,21 +226,25 @@ def effect_trainset_size(train_proportions, df, columns, **kwargs):
 
         precisions, recalls, AUCs, Xtrain, Xtest, ytrain, ytest, gb = results
         train_sizes.append(len(Xtrain))
-        all_precisions.append(np.median(np.array(precisions)))
-        all_recalls.append(np.median(np.array(recalls)))
-        all_aucs.append(np.median(np.array(AUCs)))
+        median_precisions.append(np.median(np.array(precisions)))
+        median_recalls.append(np.median(np.array(recalls)))
+        median_aucs.append(np.median(np.array(AUCs)))
+        std_precisions.append(np.std(np.array(precisions)))
+        std_recalls.append(np.std(np.array(recalls)))
+        std_aucs.append(np.std(np.array(AUCs)))
 
     if verbose_trainset_effect:
         if 'ax' in kwargs:
             ax = kwargs['ax']
         else:
             _, ax = plt.subplots()
-        ax.plot(train_sizes, all_precisions, label='Precision')
-        ax.plot(train_sizes, all_recalls, label='Recall')
-        ax.plot(train_sizes, all_aucs, label='AUC')
+        ax.errorbar(train_sizes, median_precisions, yerr=std_precisions, label='Precision')
+        ax.errorbar(train_sizes, median_recalls, yerr=std_recalls, label='Recall')
+        ax.errorbar(train_sizes, median_aucs, yerr=std_aucs, label='AUC')
         ax.legend()
         ax.set_xlabel('NUmber of points in trainset')
         ax.set_ylabel('Scores')
         ax.set_title('Effect on trainset size on performance')
 
-    return all_precisions, all_recalls, all_aucs, train_sizes
+    return (median_precisions, median_recalls, median_aucs,
+            std_precisions, std_recalls, std_aucs, train_sizes)
