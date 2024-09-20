@@ -15,14 +15,22 @@ from datetime import datetime
 def split(all_data, columns, **kwargs):
     method_split = kwargs.get('method_split', 'random')
     if method_split == 'random':
-        Xtrain, Xtest, ytrain, ytest = train_test_split(all_data.loc[:, columns].values, all_data.label_BL.values,
+        all_data['time'] = all_data.index.values
+        Xtrain, Xtest, ytrain, ytest = train_test_split(all_data.loc[:, list(columns)+['time']].values,
+                                                        all_data.label_BL.values,
                                                         test_size=kwargs.get('test_size', 0.2))
+        timestrain = Xtrain[:,-1]
+        timestest = Xtest[:,-1]
+        Xtrain = Xtrain[:,:-1]
+        Xtest = Xtest[:,:-1]
+
     elif method_split == 'temporal':
-        Xtrain, Xtest, ytrain, ytest = temporal_split(all_data.loc[:, list(columns) + ['label_BL']], columns,
-                                                      ['label_BL'], test_size=kwargs.get('test_size', 0.2))
+        Xtrain, Xtest, ytrain, ytest, timestrain, timestest = (
+            temporal_split(all_data.loc[:, list(columns) + ['label_BL']], columns,
+                           ['label_BL'], test_size=kwargs.get('test_size', 0.2)))
     else:
         raise Exception(f"Split method should be 'random' or 'temporal', but is {method_split}.")
-    return Xtrain, Xtest, ytrain.astype('int'), ytest.astype('int')
+    return Xtrain, Xtest, ytrain.astype('int'), ytest.astype('int'), timestrain, timestest
 
 
 def temporal_split(data, columns, label_columns=None, test_size=0.2):
@@ -44,7 +52,8 @@ def temporal_split(data, columns, label_columns=None, test_size=0.2):
     assert len(
         dftrain[dftrain.index.isin(dftest.index)]) == 0, "Trainset and testset should not have any point in common!"
     return (dftrain.loc[:, columns].values, dftest.loc[:, columns].values,
-            dftrain.loc[:, label_columns].values, dftest.loc[:, label_columns].values)
+            dftrain.loc[:, label_columns].values, dftest.loc[:, label_columns].values,
+            dftrain.index.values, dftest.index.values)
 
 
 def compute_scores(pred, truth):
@@ -74,7 +83,9 @@ def train_model(df, columns, **kwargs):
     n_iter = kwargs.pop('n_iter', 1)
     for i in range(n_iter):
         assert n_iter > 0, f"n_iter must be strictly positive but is {n_iter}"
-        xtrain, xtest, ytrain, ytest = split(data, columns, method_split=method_split, test_size=test_size)
+        xtrain, xtest, ytrain, ytest, timestrain, timestest = split(data, columns,
+                                                                    method_split=method_split,
+                                                                    test_size=test_size)
 
         if model == 'GBC':
             gb = Gbc(verbose=model_verbose, **kwargs)
@@ -105,7 +116,7 @@ def train_model(df, columns, **kwargs):
         ax[1].set_xlabel('Recall')
         plt.show()
 
-    return precisions, recalls, AUCs, xtrain, xtest, ytrain, ytest, gb
+    return precisions, recalls, AUCs, xtrain, xtest, ytrain, ytest, timestrain, timestest, gb
 
 
 def ROC(model, xtest, ytest, **kwargs):
@@ -201,6 +212,17 @@ def order_feature_importances(model, columns):
     return df.sort_values(by='feature_importance')
 
 
+def plot_feature_importance(model, columns, **kwargs):
+    importances = order_feature_importances(model, columns)
+    if 'ax' in kwargs:
+        ax = kwargs['ax']
+    else:
+        _, ax = plt.subplots()
+
+    ax.scatter(np.arange(len(importances)), importances.values, s=50, marker='+')
+    _ = ax.xticks(range(len(importances)), importances.index.values, fontsize=10, rotation=45)
+
+
 def all_pred(model, df, columns):
     scaler = StandardScaler()
     data = df[columns].copy().dropna()
@@ -224,7 +246,7 @@ def effect_trainset_size(train_proportions, df, columns, **kwargs):
         results = train_model(df, columns, method_split='temporal',
                               n_iter=n_iter, test_size=1 - tp, **kwargs)
 
-        precisions, recalls, AUCs, Xtrain, Xtest, ytrain, ytest, gb = results
+        precisions, recalls, AUCs, Xtrain, Xtest, ytrain, ytest, timestrain, timestest, gb = results
         train_sizes.append(len(Xtrain))
         median_precisions.append(np.median(np.array(precisions)))
         median_recalls.append(np.median(np.array(recalls)))
@@ -242,9 +264,23 @@ def effect_trainset_size(train_proportions, df, columns, **kwargs):
         ax.errorbar(train_sizes, median_recalls, yerr=std_recalls, label='Recall')
         ax.errorbar(train_sizes, median_aucs, yerr=std_aucs, label='AUC')
         ax.legend()
-        ax.set_xlabel('NUmber of points in trainset')
+        ax.set_xlabel('Number of points in trainset')
         ax.set_ylabel('Scores')
         ax.set_title('Effect on trainset size on performance')
 
     return (median_precisions, median_recalls, median_aucs,
             std_precisions, std_recalls, std_aucs, train_sizes)
+
+
+def get_all_feature_combinaisons(features):
+    all_combinaisons = [[]]
+    for _ in features:
+        all_combinaisons = ([comb + [0] for comb in all_combinaisons] +
+                            [comb + [1] for comb in all_combinaisons])
+
+    features = np.array(features)
+    all_combinaisons = np.array(all_combinaisons)
+    combinaisons_features = []
+    for comb in all_combinaisons:
+        combinaisons_features += [list(features[comb.astype('bool')])]
+    return combinaisons_features
