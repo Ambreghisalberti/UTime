@@ -48,9 +48,21 @@ def temporal_split(data, columns, label_columns=None, test_size=0.2):
         temp_train = pd.concat((temp.iloc[:indice], temp.iloc[indice + len_test:]))
         dftrain = pd.concat(
             (dftrain, pd.DataFrame(temp_train.values, index=temp_train.index.values, columns=data.columns)))
+        if len(temp_test) > 0:
+            assert len(data[temp_test.index.values[0]:temp_test.index.values[-1]]) == len(temp_test), \
+                "The monthly testset portion is missing values from the dataset (it has more holes than the original dataset)"
 
     assert len(
         dftrain[dftrain.index.isin(dftest.index)]) == 0, "Trainset and testset should not have any point in common!"
+
+    timestest = dftest.index.values
+    for i in range(len(months) - 1):
+        test = timestest[timestest >= months[i]]
+        test = test[test < months[i + 1]]
+        if len(test) > 0:
+            temp = data[test[0]:test[-1]]
+            assert len(temp) == len(test), f"In the month {i}, some testset dates have holes."
+
     return (dftrain.loc[:, columns].values, dftest.loc[:, columns].values,
             dftrain.loc[:, label_columns].values, dftest.loc[:, label_columns].values,
             dftrain.index.values, dftest.index.values)
