@@ -10,6 +10,7 @@ import random as rd
 from sklearn.metrics import auc
 import warnings
 from datetime import datetime
+from scipy.signal import medfilt
 
 
 def split(all_data, columns, **kwargs):
@@ -296,3 +297,27 @@ def get_all_feature_combinaisons(features):
     for comb in all_combinaisons:
         combinaisons_features += [list(features[comb.astype('bool')])]
     return combinaisons_features
+
+
+def scores_median_pred(pred, ytest, kernel_size, verbose=False):
+    pred_test_med = medfilt(pred, kernel_size=kernel_size)
+    pred_test_med = pred_test_med > 0.5
+
+    TP_med = np.logical_and(pred_test_med, ytest.astype('bool')).sum()
+    FP_med = np.logical_and(pred_test_med, np.logical_not(ytest.astype('bool'))).sum()
+    TN_med = np.logical_and(np.logical_not(pred_test_med), np.logical_not(ytest.astype('bool'))).sum()
+    FN_med = np.logical_and(np.logical_not(pred_test_med), ytest.astype('bool')).sum()
+    assert len(pred) == TP_med + FP_med + FN_med + TN_med, "Points should be in TP, FP, TN or FN!"
+
+    precision = TP_med / (TP_med + FP_med)
+    recall = TP_med / (TP_med + FN_med)
+
+    if verbose:
+        print(
+            f'After a median filter with kernel size = {kernel_size}, the {len(pred)} points in testset are '
+            f'{TP_med} points of true positives, {FP_med} point of false positives, '
+            f'{FN_med} points of false negatives, and {TN_med} points of true negatives,'
+            f'\ngiving a precision of {round(precision * 100, 2)}% and a recall of {round(recall * 100, 2)}%.')
+
+    return precision, recall
+
