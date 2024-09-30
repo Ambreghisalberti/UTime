@@ -330,3 +330,35 @@ def scores_median_pred(pred, ytest, kernel_size, verbose=False):
             f'\ngiving a precision of {round(precision * 100, 2)}% and a recall of {round(recall * 100, 2)}%.')
 
     return precision, recall
+
+
+def get_all_feature_choices(features_yes_or_no, features_multiple_choice):
+    all_combinaisons = [[]]
+    for _ in features_yes_or_no:
+        all_combinaisons = ([comb + [0] for comb in all_combinaisons] +
+                            [comb + [1] for comb in all_combinaisons])
+
+    for choices in features_multiple_choice:
+        nb_choices = len(choices)
+        all_new_combinaisons = []
+        for i in range(nb_choices):
+            all_new_combinaisons += [comb + [i] for comb in all_combinaisons]
+        all_combinaisons = all_new_combinaisons
+
+    return all_combinaisons
+
+
+def get_all_feature_combinaisons_multiple_choices(features_yes_or_no, features_multiple_choice, features_mandatory):
+    all_combinaisons = np.array(get_all_feature_choices(features_yes_or_no, features_multiple_choice))
+
+    combinaisons_features = []
+    for comb in all_combinaisons:
+        comb_features = features_mandatory.copy()
+        for i, features in enumerate(features_yes_or_no):
+            if comb[i] == 1:
+                comb_features += features
+        for i, choices in enumerate(features_multiple_choice):
+            choice = comb[len(features_yes_or_no) + i]
+            comb_features += choices[choice]
+        combinaisons_features += [comb_features]
+    return combinaisons_features
