@@ -20,10 +20,10 @@ def split(all_data, columns, **kwargs):
         Xtrain, Xtest, ytrain, ytest = train_test_split(all_data.loc[:, list(columns)+['time']].values,
                                                         all_data.label_BL.values,
                                                         test_size=kwargs.get('test_size', 0.2))
-        timestrain = Xtrain[:,-1]
-        timestest = Xtest[:,-1]
-        Xtrain = Xtrain[:,:-1]
-        Xtest = Xtest[:,:-1]
+        timestrain = Xtrain[:, -1]
+        timestest = Xtest[:, -1]
+        Xtrain = Xtrain[:, :-1]
+        Xtest = Xtest[:, :-1]
 
     elif method_split == 'temporal':
         Xtrain, Xtest, ytrain, ytest, timestrain, timestest = (
@@ -40,7 +40,7 @@ def temporal_split(data, columns, label_columns=None, test_size=0.2):
     dftrain, dftest = pd.DataFrame([], columns=data.columns), pd.DataFrame([], columns=data.columns)
     months = pd.date_range(start=data.index.values[0], end=data.index.values[-1], freq=timedelta(days=30))
     for i in range(len(months) - 1):
-        temp = data[months[i]:months[i + 1]].iloc[:-1,:]
+        temp = data[months[i]:months[i + 1]].iloc[:-1, :]
         # The goal is to not take the last point, as it will also be part of the next month
         len_test = int(len(temp) * test_size)
         indice = rd.randint(0, len(temp) - len_test)
@@ -51,7 +51,8 @@ def temporal_split(data, columns, label_columns=None, test_size=0.2):
             (dftrain, pd.DataFrame(temp_train.values, index=temp_train.index.values, columns=data.columns)))
         if len(temp_test) > 0:
             assert len(data[temp_test.index.values[0]:temp_test.index.values[-1]]) == len(temp_test), \
-                "The monthly testset portion is missing values from the dataset (it has more holes than the original dataset)"
+                ("The monthly testset portion is missing values from the dataset (it has more holes than "
+                 "the original dataset)")
 
     assert len(
         dftrain[dftrain.index.isin(dftest.index)]) == 0, "Trainset and testset should not have any point in common!"
@@ -91,6 +92,8 @@ def train_model(df, columns, **kwargs):
     test_size = kwargs.pop('test_size', 0.2)
 
     precisions, recalls, AUCs = [], [], []
+    xtests, xtrains, ytests, ytrains, timestests, timestrains, gbs = [], [], [], [], [], [], []
+
     model = kwargs.pop('model', 'GBC')
 
     n_iter = kwargs.pop('n_iter', 1)
@@ -99,6 +102,12 @@ def train_model(df, columns, **kwargs):
         xtrain, xtest, ytrain, ytest, timestrain, timestest = split(data, columns,
                                                                     method_split=method_split,
                                                                     test_size=test_size)
+        xtrains.append(xtrain)
+        ytrains.append(ytrain)
+        timestrains.append(timestrain)
+        xtests.append(xtest)
+        ytests.append(ytest)
+        timestests.append(timestest)
 
         if model == 'GBC':
             gb = Gbc(verbose=model_verbose, **kwargs)
@@ -107,6 +116,7 @@ def train_model(df, columns, **kwargs):
         else:
             raise Exception("Model should be GBC or HGBC")
         gb.fit(xtrain, ytrain)
+        gbs.append(gb)
 
         pred = gb.predict(xtest)
         ytest = ytest.flatten()
@@ -129,7 +139,7 @@ def train_model(df, columns, **kwargs):
         ax[1].set_xlabel('Recall')
         plt.show()
 
-    return precisions, recalls, AUCs, xtrain, xtest, ytrain, ytest, timestrain, timestest, gb
+    return precisions, recalls, AUCs, xtrains, xtests, ytrains, ytests, timestrains, timestests, gbs
 
 
 def ROC(model, xtest, ytest, **kwargs):
@@ -207,7 +217,7 @@ def learning_curve(model, xtrain, ytrain, xtest, ytest, **kwargs):
 
 
 def diagnostic(gb, xtrain, ytrain, xtest, ytest, **kwargs):
-    fig, ax = plt.subplots(ncols=3, figsize=(15,5))
+    fig, ax = plt.subplots(ncols=3, figsize=(15, 5))
     train_loss, test_loss = learning_curve(gb, xtrain, ytrain, xtest, ytest, ax=ax[0])
     recalls, precisions = recall_precision_curve(gb, xtest, ytest, ax=ax[1])
     FPRs, TPRs, auc_value = ROC(gb, xtest, ytest, verbose=True, ax=ax[2])
@@ -215,7 +225,7 @@ def diagnostic(gb, xtrain, ytrain, xtest, ytest, **kwargs):
             'recalls': recalls, 'precisions': precisions,
             'FPRs': FPRs, 'TPRs': TPRs, 'auc_value': auc_value}
     fig.tight_layout()
-    name= kwargs.get('name',str(datetime.now())[:10])
+    name = kwargs.get('name', str(datetime.now())[:10])
     fig.savefig(f'/home/ghisalberti/GradientBoosting/diagnostics/diag_{name}.jpg')
     return diag
 
@@ -259,8 +269,8 @@ def effect_trainset_size(train_proportions, df, columns, **kwargs):
         results = train_model(df, columns, method_split='temporal',
                               n_iter=n_iter, test_size=1 - tp, **kwargs)
 
-        precisions, recalls, AUCs, Xtrain, Xtest, ytrain, ytest, timestrain, timestest, gb = results
-        train_sizes.append(len(Xtrain))
+        precisions, recalls, AUCs, Xtrains, _, _, _, _, _, _ = results
+        train_sizes.append(len(Xtrains[0]))
         median_precisions.append(np.median(np.array(precisions)))
         median_recalls.append(np.median(np.array(recalls)))
         median_aucs.append(np.median(np.array(AUCs)))
@@ -320,4 +330,3 @@ def scores_median_pred(pred, ytest, kernel_size, verbose=False):
             f'\ngiving a precision of {round(precision * 100, 2)}% and a recall of {round(recall * 100, 2)}%.')
 
     return precision, recall
-
