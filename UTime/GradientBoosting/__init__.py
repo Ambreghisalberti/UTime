@@ -28,17 +28,19 @@ def split(all_data, columns, **kwargs):
     elif method_split == 'temporal':
         Xtrain, Xtest, ytrain, ytest, timestrain, timestest = (
             temporal_split(all_data.loc[:, list(columns) + ['label_BL']], columns,
-                           ['label_BL'], test_size=kwargs.get('test_size', 0.2)))
+                           ['label_BL'], test_size=kwargs.pop('test_size', 0.2),
+                           **kwargs))
     else:
         raise Exception(f"Split method should be 'random' or 'temporal', but is {method_split}.")
     return Xtrain, Xtest, ytrain.astype('int'), ytest.astype('int'), timestrain, timestest
 
 
-def temporal_split(data, columns, label_columns=None, test_size=0.2):
+def temporal_split(data, columns, label_columns=None, test_size=0.2, **kwargs):
     if label_columns is None:
         label_columns = ['label_BL']
     dftrain, dftest = pd.DataFrame([], columns=data.columns), pd.DataFrame([], columns=data.columns)
-    months = pd.date_range(start=data.index.values[0], end=data.index.values[-1], freq=timedelta(days=30))
+    months = pd.date_range(start=data.index.values[0], end=data.index.values[-1],
+                           freq=kwargs.get('freq_split', timedelta(days=30)))
     for i in range(len(months) - 1):
         temp = data[months[i]:months[i + 1]].iloc[:-1, :]
         # The goal is to not take the last point, as it will also be part of the next month
@@ -362,3 +364,11 @@ def get_all_feature_combinaisons_multiple_choices(features_yes_or_no, features_m
             comb_features += choices[choice]
         combinaisons_features += [comb_features]
     return combinaisons_features
+
+
+def get_name_choice(choice):
+    temp = str(choice)[1:-1].split(', ')
+    temp2 = ''
+    for t in temp:
+        temp2 += t
+    return temp2
