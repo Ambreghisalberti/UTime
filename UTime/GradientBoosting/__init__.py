@@ -95,6 +95,7 @@ def temporal_split(data, columns, label_columns=None, test_size=0.2, **kwargs):
                 ("The monthly testset portion is missing values from the dataset (it has more holes than "
                  "the original dataset)")
 
+    timestrain, timestest = np.array(timestrain), np.array(timestest)
     for i in range(len(months) - 1):
         test = timestest[timestest >= months[i]]
         test = test[test < months[i + 1]]
@@ -102,8 +103,8 @@ def temporal_split(data, columns, label_columns=None, test_size=0.2, **kwargs):
             temp = data[test[0]:test[-1]]
             assert len(temp) == len(test), f"In the month {i}, some testset dates have holes."
 
-    dftrain = data.loc[np.array(timestrain)]
-    dftest = data.loc[np.array(timestest)]
+    dftrain = data.loc[timestrain]
+    dftest = data.loc[timestest]
 
     assert len(
         dftrain[dftrain.index.isin(dftest.index)]) == 0, "Trainset and testset should not have any point in common!"
