@@ -563,3 +563,99 @@ def measure_variability_scores(subdata, columns, **kwargs):
             all_precisions_common, all_recalls_common,
             median_precision_std, median_precision_common_std,
             median_recall_std, median_recall_common_std)
+
+
+def check_effect_freq_split_on_variability(subdata, columns, split_frequencies, **kwargs):
+    all_median_precision_std = []
+    all_median_precision_common_std = []
+    all_median_recall_std = []
+    all_median_recall_common_std = []
+    all_median_precision_span = []
+    all_median_precision_common_span = []
+    all_median_recall_span = []
+    all_median_recall_common_span = []
+
+    results = {}
+    for freq_split in split_frequencies:
+        (all_precisions, all_recalls,
+         all_precisions_common, all_recalls_common,
+         median_precision_std, median_precision_common_std,
+         median_recall_std, median_recall_common_std) = measure_variability_scores(subdata,
+                                                                                   columns,
+                                                                                   freq_split=freq_split,
+                                                                                   **kwargs)
+        all_median_precision_std += [median_precision_std]
+        all_median_precision_common_std += [median_precision_common_std]
+        all_median_recall_std += [median_recall_std]
+        all_median_recall_common_std += [median_recall_common_std]
+        all_median_precision_span += [
+            np.median(np.array([np.max(precisions) - np.min(precisions) for precisions in all_precisions]))]
+        all_median_precision_common_span += [
+            np.median(np.array([np.max(precisions) - np.min(precisions) for precisions in all_precisions_common]))]
+        all_median_recall_span += [np.median(np.array([np.max(recalls) - np.min(recalls) for recalls in all_recalls]))]
+        all_median_recall_common_span += [
+            np.median(np.array([np.max(recalls) - np.min(recalls) for recalls in all_recalls_common]))]
+        results = {'description': f'On {kwargs.get("n_iter", 100)} runs, assessment of precision and '
+                                  f'recall standard deviation, '
+                                  'on each testset, and on a common testset. These results are averaged over '
+                                  f'{kwargs.get("nb_trys", 5)} repetitions.', 'frequencies': split_frequencies,
+                   'all_median_precision_std': all_median_precision_std,
+                   'all_median_precision_common_std': all_median_precision_common_std,
+                   'all_median_recall_std': all_median_recall_std,
+                   'all_median_recall_common_std': all_median_recall_common_std,
+                   'all_median_precision_span': all_median_precision_span,
+                   'all_median_precision_common_span': all_median_precision_common_span,
+                   'all_median_recall_span': all_median_recall_span,
+                   'all_median_recall_common_span': all_median_recall_common_span}
+
+        pd.to_pickle(results, '/home/ghisalberti/GradientBoosting/diagnostics/'
+                              'effect_freq_split_on_variability.pkl')
+
+    if kwargs.get('verbose', True):
+        text = ''
+        for i in range(len(split_frequencies)):
+            text += (f'For a split period of {split_frequencies[i]}, we have a precision standard deviation of '
+                     f'{round(all_median_precision_std[i] * 100, 2)}% on normal testsets, and of '
+                     f'{round(all_median_precision_common_std[i] * 100, 2)}% on a common testset;')
+            text += (f'and a recall standard deviation of {round(all_median_recall_std[i] * 100, 2)}% '
+                     f'on normal testsets, and of {round(all_median_recall_common_std[i] * 100, 2)}% '
+                     f'on a common testset.\n')
+        print(text)
+
+    return results
+
+
+def plot_effect_freq_split_on_variability(results):
+    frequencies = results['frequencies']
+    all_median_precision_std = results['all_median_precision_std']
+    all_median_precision_common_std = results['all_median_precision_common_std']
+    all_median_recall_std = results['all_median_recall_std']
+    all_median_recall_common_std = results['all_median_recall_common_std']
+    all_median_precision_span = results['all_median_precision_span']
+    all_median_precision_common_span = results['all_median_precision_common_span']
+    all_median_recall_span = results['all_median_recall_span']
+    all_median_recall_common_span = results['all_median_recall_common_span']
+
+    fig, ax = plt.subplots(ncols=2, figsize=(10, 5))
+
+    ax[0].plot([freq.days for freq in frequencies], all_median_precision_std, label='Precision variability')
+    ax[0].plot([freq.days for freq in frequencies], all_median_precision_common_std,
+               label='Precision variability, common testset')
+    ax[0].plot([freq.days for freq in frequencies], all_median_recall_std, label='Recall variability')
+    ax[0].plot([freq.days for freq in frequencies], all_median_recall_common_std,
+               label='Recall variability, common testset')
+    ax[0].legend()
+    ax[0].set_xlabel('Split period, in days')
+    ax[0].set_ylabel('Standard deviation')
+
+    ax[1].plot([freq.days for freq in frequencies], all_median_precision_span, label='Precision variability')
+    ax[1].plot([freq.days for freq in frequencies], all_median_precision_common_span,
+               label='Precision variability, common testset')
+    ax[1].plot([freq.days for freq in frequencies], all_median_recall_span, label='Recall variability')
+    ax[1].plot([freq.days for freq in frequencies], all_median_recall_common_span,
+               label='Recall variability, common testset')
+    ax[1].legend()
+    ax[1].set_xlabel('Split period, in days')
+    ax[1].set_ylabel('Score span')
+
+    fig.suptitle('Effect of temporal split period on variability of scores')
