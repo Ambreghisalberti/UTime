@@ -35,6 +35,7 @@ def split(all_data, columns, **kwargs):
     return Xtrain, Xtest, ytrain.astype('int'), ytest.astype('int'), timestrain, timestest
 
 
+'''
 def temporal_split(data, columns, label_columns=None, test_size=0.2, **kwargs):
     if label_columns is None:
         label_columns = ['label_BL']
@@ -70,6 +71,46 @@ def temporal_split(data, columns, label_columns=None, test_size=0.2, **kwargs):
     return (dftrain.loc[:, columns].values, dftest.loc[:, columns].values,
             dftrain.loc[:, label_columns].values, dftest.loc[:, label_columns].values,
             dftrain.index.values, dftest.index.values)
+'''
+
+
+def temporal_split(data, columns, label_columns=None, test_size=0.2, **kwargs):
+    if label_columns is None:
+        label_columns = ['label_BL']
+    timestrain, timestest = [], []
+    months = pd.date_range(start=data.index.values[0], end=data.index.values[-1],
+                           freq=kwargs.get('freq_split', timedelta(days=30)))
+    for i in range(len(months) - 1):
+        temp = data[months[i]:months[i + 1]].iloc[:-1, :].index.values
+        # The goal is to not take the last point, as it will also be part of the next month
+        len_test = int(len(temp) * test_size)
+        indice = rd.randint(0, len(temp) - len_test)
+        temp_test = list(temp[indice:indice + len_test])
+        timestest += temp_test
+        temp_train = list(temp[:indice])+list(temp[indice + len_test:])
+        timestrain += temp_train
+
+        if len(temp_test) > 0:
+            assert len(data[temp_test[0]:temp_test[-1]]) == len(temp_test), \
+                ("The monthly testset portion is missing values from the dataset (it has more holes than "
+                 "the original dataset)")
+
+    for i in range(len(months) - 1):
+        test = timestest[timestest >= months[i]]
+        test = test[test < months[i + 1]]
+        if len(test) > 0:
+            temp = data[test[0]:test[-1]]
+            assert len(temp) == len(test), f"In the month {i}, some testset dates have holes."
+
+    dftrain = data.loc[np.array(timestrain)]
+    dftest = data.loc[np.array(timestest)]
+
+    assert len(
+        dftrain[dftrain.index.isin(dftest.index)]) == 0, "Trainset and testset should not have any point in common!"
+
+    return (dftrain.loc[:, columns].values, dftest.loc[:, columns].values,
+            dftrain.loc[:, label_columns].values, dftest.loc[:, label_columns].values,
+            timestrain, timestest)
 
 
 def compute_scores(pred, truth):
@@ -372,3 +413,152 @@ def get_name_choice(choice):
     for t in temp:
         temp2 += t
     return temp2
+
+
+def add_scores(gb, xtest, ytest, precisions, recalls):
+    pred = gb.predict(xtest)
+    ytest = ytest.flatten()
+    TP, FP, TN, FN, precision, recall = compute_scores(pred, ytest)
+    precisions.append(precision)
+    recalls.append(recall)
+    return precisions, recalls
+
+
+def split_and_fit(data, columns, method_split, test_size, gbs, **kwargs):
+    xtrain, xtest, ytrain, ytest, timestrain, timestest = split(data, columns,
+                                                                method_split=method_split,
+                                                                test_size=test_size,
+                                                                freq_split=kwargs.get('freq_split', timedelta(days=30)))
+
+    model = kwargs.get('model', 'GBC')
+    verbose = kwargs.get('model_verbose', True)
+    if model == 'GBC':
+        gb = Gbc(verbose=verbose)
+    elif model == 'HGBC':
+        gb = Hgbc(verbose=verbose, max_iter=kwargs.get('max_iter', 50))
+    else:
+        raise Exception("Model should be GBC or HGBC")
+    gb.fit(xtrain, ytrain)
+    gbs.append(gb)
+
+    return xtest, ytest, gbs
+
+
+def x_y_set(set, scaler, columns):
+    y = set.label_BL.values
+    x = set[columns]
+    x.loc[:, :] = scaler.transform(x.values)
+    return x, y
+
+
+def fit_and_assess_on_different_and_common_testsets(df, testset2, columns, **kwargs):
+    warnings.filterwarnings("ignore")
+    scaler = StandardScaler()
+    data = df.copy().dropna()
+    data.loc[:, columns] = scaler.fit_transform(data.loc[:, columns].values)
+
+    xtest2, ytest2 = x_y_set(testset2, scaler, columns)
+
+    method_split = kwargs.pop('method_split', 'temporal')
+    test_size = kwargs.pop('test_size', 0.2)
+
+    precisions, recalls = [], []
+    gbs = []
+    precisions2, recalls2 = [], []
+
+    n_iter = kwargs.pop('n_iter', 1)
+    assert n_iter > 0, f"n_iter must be strictly positive but is {n_iter}"
+
+    for i in range(n_iter):
+        xtest, ytest, gbs = split_and_fit(data, columns, method_split, test_size, gbs, **kwargs)
+        precisions, recalls = add_scores(gbs[-1], xtest, ytest, precisions, recalls)
+        precisions2, recalls2 = add_scores(gbs[-1], xtest2, ytest2, precisions2, recalls2)
+
+    if kwargs.get('verbose', False):
+        print(
+            f'Over {len(precisions)} runs, the precision has '
+            f'a standard deviation of {round(np.std(precisions) * 100, 2)}% and '
+            f'a span of {round((np.max(precisions) - np.min(precisions)) * 100, 2)}%, and '
+            f'the recall has a standard deviation of {round(np.std(recalls) * 100, 2)}% and '
+            f'a span of {round((np.max(recalls) - np.min(recalls)) * 100, 2)}%.')
+        print(
+            f'On a common testset, the precision has a standard deviation of '
+            f'{round(np.std(precisions2) * 100, 2)}% and '
+            f'a span of {round((np.max(precisions2) - np.min(precisions2)) * 100, 2)}%, '
+            f'and the recall has a standard deviation of {round(np.std(recalls2) * 100, 2)}% '
+            f'and a span of {round((np.max(recalls2) - np.min(recalls2)) * 100, 2)}%.')
+
+    return precisions, recalls, precisions2, recalls2, gbs
+
+
+def measure_variability_scores(subdata, columns, **kwargs):
+    all_precisions, all_recalls, all_precisions_common, all_recalls_common = [], [], [], []
+
+    nb_trys = kwargs.get('nb_trys', 5)
+    for i in range(nb_trys):
+        _, _, _, _, df_times, testset2_times = temporal_split(subdata, ['Bx', 'label_BL'],
+                                                              test_size=0.2,
+                                                              freq_split=timedelta(days=60))
+        testset2 = subdata.loc[testset2_times]
+        df = subdata.loc[df_times]
+
+        (precisions, recalls,
+         precisions2, recalls2, gbs) = fit_and_assess_on_different_and_common_testsets(df, testset2,
+                                                                                       columns, **kwargs)
+        print('\n')
+        all_precisions += [precisions]
+        all_recalls += [recalls]
+        all_precisions_common += [precisions2]
+        all_recalls_common += [recalls2]
+
+    fig, ax = plt.subplots(ncols=3, figsize=(15, 5))
+
+    for i, (precisions, recalls, precisions2, recalls2) in enumerate(
+            zip(all_precisions, all_recalls, all_precisions_common, all_recalls_common)):
+        ax[0].scatter(precisions, precisions2, label='Precisions', color='blue', s=3)
+        ax[0].scatter(recalls, recalls2, label='Recalls', color='orange', s=3)
+        if i == 0:
+            ax[0].legend()
+    ax[0].plot(np.linspace(0, 1, 100), np.linspace(0, 1, 100), linestyle='--', color='grey', alpha=0.5)
+    ax[0].set_xlabel('On random testset')
+    ax[0].set_ylabel('On same unseen testset')
+
+    ax[1].errorbar(np.arange(len(all_precisions)), [np.median(np.array(precisions)) for precisions in all_precisions],
+                   yerr=[np.std(np.array(precisions)) for precisions in all_precisions],
+                   label='On corresponding testsets')
+    ax[1].errorbar(np.arange(len(all_precisions)),
+                   [np.median(np.array(precisions)) for precisions in all_precisions_common],
+                   yerr=[np.std(np.array(precisions)) for precisions in all_precisions_common],
+                   label='On common testset')
+    ax[1].set_xlabel("Different common testsets")
+    ax[1].set_ylabel("Precision")
+    ax[1].legend()
+
+    ax[2].errorbar(np.arange(len(all_recalls)), [np.median(np.array(recalls)) for recalls in all_recalls],
+                   yerr=[np.std(np.array(recalls)) for recalls in all_recalls], label='On corresponding testsets')
+    ax[2].errorbar(np.arange(len(all_recalls)), [np.median(np.array(recalls)) for recalls in all_recalls_common],
+                   yerr=[np.std(np.array(recalls)) for recalls in all_recalls_common], label='On common testset')
+    ax[2].set_xlabel("Different common testsets")
+    ax[2].set_ylabel("Precision")
+    ax[2].legend()
+
+    fig.suptitle(f"For a train/test split on every chunk of {str(kwargs.get('freq_split', timedelta(days=30)))}.")
+    fig.tight_layout()
+
+    median_precision_std = np.median(np.array([np.std(np.array(precisions)) for precisions in all_precisions]))
+    median_precision_common_std = np.median(
+        np.array([np.std(np.array(precisions)) for precisions in all_precisions_common]))
+    median_recall_std = np.median(np.array([np.std(np.array(recalls)) for recalls in all_recalls]))
+    median_recall_common_std = np.median(np.array([np.std(np.array(recalls)) for recalls in all_recalls_common]))
+
+    print(
+        f'The precision on random testsets has a standard deviation of {round(median_precision_std * 100, 2)}%, '
+        f'and of {round(median_precision_common_std * 100, 2)}% on common testset.')
+    print(
+        f'The recall on random testsets has a standard deviation of {round(median_recall_std * 100, 2)}%, '
+        f'and of {round(median_recall_common_std * 100, 2)}% on common testset.')
+
+    return (all_precisions, all_recalls,
+            all_precisions_common, all_recalls_common,
+            median_precision_std, median_precision_common_std,
+            median_recall_std, median_recall_common_std)
