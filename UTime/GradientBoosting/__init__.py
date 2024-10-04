@@ -695,8 +695,8 @@ def ensemble_learning_on_same_model(data, columns, **kwargs):
         median_precisions += [np.median(np.array(precisions2))]
         median_recalls += [np.median(np.array(recalls2))]
 
-        print(
-            f'For ensemble learning: precision = {round(precision * 100, 2)}% and recall = {round(recall * 100, 2)}%, from models with average precision = {round(np.median(np.array(precisions2)) * 100, 2)}% and average recall = {round(np.median(np.array(recalls2)) * 100, 2)}%.')
+        if verbose:
+            print(f'For ensemble learning: precision = {round(precision * 100, 2)}% and recall = {round(recall * 100, 2)}%, from models with average precision = {round(np.median(np.array(precisions2)) * 100, 2)}% and average recall = {round(np.median(np.array(recalls2)) * 100, 2)}%.')
 
     if verbose:
         plt.figure()
@@ -750,8 +750,9 @@ def ensemble_learning_on_different_features(data, list_features, **kwargs):
         median_precisions += [np.median(np.array(precisions2))]
         median_recalls += [np.median(np.array(recalls2))]
 
-        print(
-            f'For ensemble learning: precision = {round(precision * 100, 2)}% and recall = {round(recall * 100, 2)}%, from models with average precision = {round(np.median(np.array(precisions2)) * 100, 2)}% and average recall = {round(np.median(np.array(recalls2)) * 100, 2)}%.')
+        if verbose:
+            print(
+                f'For ensemble learning: precision = {round(precision * 100, 2)}% and recall = {round(recall * 100, 2)}%, from models with average precision = {round(np.median(np.array(precisions2)) * 100, 2)}% and average recall = {round(np.median(np.array(recalls2)) * 100, 2)}%.')
 
     if verbose:
         plt.figure()
