@@ -722,7 +722,7 @@ def ensemble_learning_on_different_features(data, list_features, **kwargs):
                                                               freq_split=timedelta(days=60))
         testset2 = data.loc[testset2_times]
         df = data.loc[df_times]
-        gbs, precisions, precisions2, recalls, recalls2 = []
+        gbs, precisions, precisions2, recalls, recalls2 = [], [], [], [], []
         for columns in list_features:
             scaler = StandardScaler()
             scaler.fit(df.loc[:, columns].values)
