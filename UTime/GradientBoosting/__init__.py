@@ -682,7 +682,7 @@ def ensemble_learning_on_same_model(data, columns, **kwargs):
          precisions2, recalls2, gbs) = fit_and_assess_on_different_and_common_testsets(df, testset2,
                                                                                        columns,
                                                                                        n_iter=n_iter,
-                                                                                       verbose=False
+                                                                                       verbose=False,
                                                                                        **kwargs)
         pred = np.zeros(len(testset2))
         for gb in gbs:
@@ -732,7 +732,7 @@ def ensemble_learning_on_different_features(data, list_features, **kwargs):
             (prec, rec, prec2, rec2, gb) = fit_and_assess_on_different_and_common_testsets(df, testset2,
                                                                                            columns,
                                                                                            n_iter=1,
-                                                                                           verbose=False
+                                                                                           verbose=False,
                                                                                            **kwargs)
             gbs += gb
             precisions += prec
