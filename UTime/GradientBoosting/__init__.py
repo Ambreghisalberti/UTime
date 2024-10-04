@@ -713,7 +713,6 @@ def ensemble_learning_on_same_model(data, columns, **kwargs):
 
 def ensemble_learning_on_different_features(data, list_features, **kwargs):
     ensemble_precisions, ensemble_recalls, median_precisions, median_recalls = [], [], [], []
-    n_iter = kwargs.get('n_models_ensemble', 10)
     n_trys = kwargs.get('n_repetitions', 30)
     verbose = kwargs.pop('verbose', False)
 
@@ -743,7 +742,7 @@ def ensemble_learning_on_different_features(data, list_features, **kwargs):
         pred = np.zeros(len(testset2))
         for gb in gbs:
             pred += gb.predict_proba(xtest2)[:, 1]
-        pred = pred / n_iter
+        pred = pred / len(gbs)
         pred = (pred > 0.5).astype('int')
         _, _, _, _, precision, recall = compute_scores(pred.flatten(), ytest2.flatten())
         ensemble_precisions += [precision]
@@ -762,7 +761,7 @@ def ensemble_learning_on_different_features(data, list_features, **kwargs):
         plt.legend()
         plt.xlabel('Scores')
         plt.ylabel('Count')
-        plt.title(f'Score gain from single models to ensemble models from {n_iter} single ones')
+        plt.title(f'Score gain from single models to ensemble models from {len(gbs)} single ones')
 
     return (np.array(ensemble_precisions), np.array(ensemble_recalls),
             np.array(median_precisions), np.array(median_recalls))
