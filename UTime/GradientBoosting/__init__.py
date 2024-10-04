@@ -712,37 +712,39 @@ def ensemble_learning_on_same_model(data, columns, **kwargs):
 
 
 def ensemble_learning_on_different_features(data, list_features, **kwargs):
-    ensemble_precisions, ensemble_recalls, median_precisions, median_recalls = [], [], [], []
-    n_trys = kwargs.get('n_repetitions', 30)
-    verbose = kwargs.pop('verbose', False)
+    warnings.filterwarnings("ignore")
 
-    for i in range(n_trys):
-        _, _, _, _, df_times, testset2_times = temporal_split(data, ['Bx', 'label_BL'],
+    ensemble_precisions, ensemble_recalls, median_precisions, median_recalls = [], [], [], []
+    verbose = kwargs.pop('verbose', False)
+    model = kwargs.get('model','HGBC')
+
+    for i in range(len(list_features)):
+        _, _, _, _, timestrain, timestest = temporal_split(data, ['Bx', 'label_BL'],
                                                               test_size=0.2,
-                                                              freq_split=timedelta(days=60))
-        testset2 = data.loc[testset2_times]
-        df = data.loc[df_times]
-        gbs, precisions, precisions2, recalls, recalls2 = [], [], [], [], []
+                                                              freq_split=timedelta(days=30))
+        testset = data.loc[timestest]
+        trainset = data.loc[timestrain]
+        precisions, precisions2, recalls, recalls2 = [], [], [], []
+
+        pred = np.zeros(len(testset))
         for columns in list_features:
             scaler = StandardScaler()
-            scaler.fit(df.loc[:, columns].values)
-            xtest2, ytest2 = x_y_set(testset2, scaler, columns)
+            scaler.fit(trainset.loc[:, columns].values)
+            xtest, ytest = x_y_set(testset, scaler, columns)
+            xtrain, ytrain = x_y_set(trainset, scaler, columns)
 
-            (prec, rec, prec2, rec2, gb) = fit_and_assess_on_different_and_common_testsets(df, testset2,
-                                                                                           columns,
-                                                                                           n_iter=1,
-                                                                                           verbose=False,
-                                                                                           **kwargs)
-            gbs += gb
-            precisions += prec
-            precisions2 += prec2
-            recalls += rec
-            recalls2 += rec2
+            if model == 'GBC':
+                gb = Gbc(verbose=False)
+            elif model == 'HGBC':
+                gb = Hgbc(verbose=False, max_iter=kwargs.get('max_iter', 50))
+            else:
+                raise Exception("Model should be GBC or HGBC")
 
-        pred = np.zeros(len(testset2))
-        for gb in gbs:
-            pred += gb.predict_proba(xtest2)[:, 1]
-        pred = pred / len(gbs)
+            gb.fit(xtrain, ytrain)
+            precisions, recalls = add_scores(gb, xtest, ytest, precisions, recalls)
+            pred += gb.predict_proba(xtest)[:, 1]
+
+        pred = pred / len(list_features)
         pred = (pred > 0.5).astype('int')
         _, _, _, _, precision, recall = compute_scores(pred.flatten(), ytest2.flatten())
         ensemble_precisions += [precision]
@@ -762,7 +764,7 @@ def ensemble_learning_on_different_features(data, list_features, **kwargs):
         plt.legend()
         plt.xlabel('Scores')
         plt.ylabel('Count')
-        plt.title(f'Score gain from single models to ensemble models from {len(gbs)} single ones')
+        plt.title(f'Score gain from single models to ensemble models from {len(list_features)} single ones')
 
     return (np.array(ensemble_precisions), np.array(ensemble_recalls),
             np.array(median_precisions), np.array(median_recalls))
