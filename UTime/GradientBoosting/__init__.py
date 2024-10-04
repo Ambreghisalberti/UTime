@@ -666,6 +666,7 @@ def ensemble_learning_on_same_model(data, columns, **kwargs):
     ensemble_precisions, ensemble_recalls, median_precisions, median_recalls = [], [], [], []
     n_iter = kwargs.get('n_models_ensemble', 10)
     n_trys = kwargs.get('n_repetitions', 30)
+    verbose = kwargs.pop('verbose', False)
 
     for i in range(n_trys):
         _, _, _, _, df_times, testset2_times = temporal_split(data, ['Bx', 'label_BL'],
@@ -681,6 +682,7 @@ def ensemble_learning_on_same_model(data, columns, **kwargs):
          precisions2, recalls2, gbs) = fit_and_assess_on_different_and_common_testsets(df, testset2,
                                                                                        columns,
                                                                                        n_iter=n_iter,
+                                                                                       verbose=False
                                                                                        **kwargs)
         pred = np.zeros(len(testset2))
         for gb in gbs:
@@ -696,7 +698,7 @@ def ensemble_learning_on_same_model(data, columns, **kwargs):
         print(
             f'For ensemble learning: precision = {round(precision * 100, 2)}% and recall = {round(recall * 100, 2)}%, from models with average precision = {round(np.median(np.array(precisions2)) * 100, 2)}% and average recall = {round(np.median(np.array(recalls2)) * 100, 2)}%.')
 
-    if kwargs.get('verbose',True):
+    if verbose:
         plt.figure()
         _ = plt.hist(np.array(ensemble_precisions) - np.array(median_precisions), bins=50, alpha=0.5, label='precisions')
         _ = plt.hist(np.array(ensemble_recalls) - np.array(median_recalls), bins=50, alpha=0.5, label='recalls')
@@ -713,6 +715,7 @@ def ensemble_learning_on_different_features(data, list_features, **kwargs):
     ensemble_precisions, ensemble_recalls, median_precisions, median_recalls = [], [], [], []
     n_iter = kwargs.get('n_models_ensemble', 10)
     n_trys = kwargs.get('n_repetitions', 30)
+    verbose = kwargs.pop('verbose', False)
 
     for i in range(n_trys):
         _, _, _, _, df_times, testset2_times = temporal_split(data, ['Bx', 'label_BL'],
@@ -729,6 +732,7 @@ def ensemble_learning_on_different_features(data, list_features, **kwargs):
             (prec, rec, prec2, rec2, gb) = fit_and_assess_on_different_and_common_testsets(df, testset2,
                                                                                            columns,
                                                                                            n_iter=1,
+                                                                                           verbose=False
                                                                                            **kwargs)
             gbs += gb
             precisions += prec
@@ -750,7 +754,7 @@ def ensemble_learning_on_different_features(data, list_features, **kwargs):
         print(
             f'For ensemble learning: precision = {round(precision * 100, 2)}% and recall = {round(recall * 100, 2)}%, from models with average precision = {round(np.median(np.array(precisions2)) * 100, 2)}% and average recall = {round(np.median(np.array(recalls2)) * 100, 2)}%.')
 
-    if kwargs.get('verbose', True):
+    if verbose:
         plt.figure()
         _ = plt.hist(np.array(ensemble_precisions) - np.array(median_precisions), bins=50, alpha=0.5,
                      label='precisions')
