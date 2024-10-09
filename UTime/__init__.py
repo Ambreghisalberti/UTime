@@ -35,7 +35,7 @@ class DataForWindows(Dataset):
         self.all_dataset = select_windows(self.dataset, conditions_select)
         indices_windows = np.ones(len(self.all_dataset)).astype('bool')
         for condition in self.conditions:
-            indices_windows = np.logical_and(indices_windows, self.all_dataset[condition].values)
+            indices_windows = np.logical_and(indices_windows, self.all_dataset[condition].values.astype('bool'))
         self.all_windows_indices = np.arange(len(self.all_dataset))[indices_windows]
 
         self.labelled_condition = kwargs.get('labelled_condition', ['isLabelled'])
@@ -43,7 +43,7 @@ class DataForWindows(Dataset):
         self.dataset = select_windows(self.dataset, labelled_conditions_select + conditions_select)
         indices_windows = np.ones(len(self.dataset)).astype('bool')
         for condition in self.conditions+self.labelled_condition:
-            indices_windows = np.logical_and(indices_windows, self.dataset[condition].values)
+            indices_windows = np.logical_and(indices_windows, self.dataset[condition].values.astype('bool'))
         self.windows_indices = np.arange(len(self.dataset))[indices_windows]
 
         self.spectro_normalization_method = kwargs.get('spectro_normalization', 'per_channel')
