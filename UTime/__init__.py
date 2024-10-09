@@ -33,7 +33,7 @@ class DataForWindows(Dataset):
         self.conditions = kwargs.get('conditions',['isDayside', 'isFull', 'encountersMSPandMSH'])
         conditions_select = [condition+'_select' for condition in self.conditions]
         self.all_dataset = select_windows(self.dataset, conditions_select)
-        indices_windows = np.ones(len(self.all_dataset))
+        indices_windows = np.ones(len(self.all_dataset)).astype('bool')
         for condition in self.conditions:
             indices_windows = np.logical_and(indices_windows, self.all_dataset[condition].values)
         self.all_windows_indices = np.arange(len(self.all_dataset))[indices_windows]
@@ -41,7 +41,7 @@ class DataForWindows(Dataset):
         self.labelled_condition = kwargs.get('labelled_condition', ['isLabelled'])
         labelled_conditions_select = [condition+'_select' for condition in self.labelled_condition]
         self.dataset = select_windows(self.dataset, labelled_conditions_select + conditions_select)
-        indices_windows = np.ones(len(self.dataset))
+        indices_windows = np.ones(len(self.dataset)).astype('bool')
         for condition in self.conditions+self.labelled_condition:
             indices_windows = np.logical_and(indices_windows, self.dataset[condition].values)
         self.windows_indices = np.arange(len(self.dataset))[indices_windows]
