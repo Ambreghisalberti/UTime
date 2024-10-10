@@ -134,6 +134,7 @@ def train_model(df, columns, **kwargs):
     verbose = kwargs.pop('verbose', True)
     model_verbose = kwargs.pop('model_verbose', True)
     test_size = kwargs.pop('test_size', 0.2)
+    freq_split = kwargs.pop('freq_split', timedelta(days=30))
 
     precisions, recalls, AUCs = [], [], []
     xtests, xtrains, ytests, ytrains, timestests, timestrains, gbs = [], [], [], [], [], [], []
@@ -141,11 +142,13 @@ def train_model(df, columns, **kwargs):
     model = kwargs.pop('model', 'GBC')
 
     n_iter = kwargs.pop('n_iter', 1)
+    assert n_iter > 0, f"n_iter must be strictly positive but is {n_iter}"
+
     for i in range(n_iter):
-        assert n_iter > 0, f"n_iter must be strictly positive but is {n_iter}"
         xtrain, xtest, ytrain, ytest, timestrain, timestest = split(data, columns,
                                                                     method_split=method_split,
-                                                                    test_size=test_size)
+                                                                    test_size=test_size,
+                                                                    freq_split=freq_split)
         xtrains.append(xtrain)
         ytrains.append(ytrain)
         timestrains.append(timestrain)
@@ -659,7 +662,8 @@ def plot_effect_freq_split_on_variability(results, **kwargs):
     ax[1].set_ylabel('Score span')
 
     fig.suptitle('Effect of temporal split period on variability of scores')
-    fig.savefig(f'/home/ghisalberti/GradientBoosting/diagnostics/score_variability_depending_on_freq_split_{kwargs.get("name",str(datetime.now())[:10])}.pkl')
+    fig.savefig(f'/home/ghisalberti/GradientBoosting/diagnostics/score_variability_'
+                f'depending_on_freq_split_{kwargs.get("name",str(datetime.now())[:10])}.pkl')
 
 
 def ensemble_learning_on_same_model(data, columns, **kwargs):
@@ -696,11 +700,15 @@ def ensemble_learning_on_same_model(data, columns, **kwargs):
         median_recalls += [np.median(np.array(recalls2))]
 
         if verbose:
-            print(f'For ensemble learning: precision = {round(precision * 100, 2)}% and recall = {round(recall * 100, 2)}%, from models with average precision = {round(np.median(np.array(precisions2)) * 100, 2)}% and average recall = {round(np.median(np.array(recalls2)) * 100, 2)}%.')
+            print(f'For ensemble learning: precision = {round(precision * 100, 2)}% '
+                  f'and recall = {round(recall * 100, 2)}%, from models '
+                  f'with average precision = {round(np.median(np.array(precisions2)) * 100, 2)}% '
+                  f'and average recall = {round(np.median(np.array(recalls2)) * 100, 2)}%.')
 
     if verbose:
         plt.figure()
-        _ = plt.hist(np.array(ensemble_precisions) - np.array(median_precisions), bins=50, alpha=0.5, label='precisions')
+        _ = plt.hist(np.array(ensemble_precisions) - np.array(median_precisions), bins=50, alpha=0.5,
+                     label='precisions')
         _ = plt.hist(np.array(ensemble_recalls) - np.array(median_recalls), bins=50, alpha=0.5, label='recalls')
         plt.legend()
         plt.xlabel('Scores')
@@ -714,17 +722,20 @@ def ensemble_learning_on_same_model(data, columns, **kwargs):
 def ensemble_learning_on_different_features(data, list_features, **kwargs):
     warnings.filterwarnings("ignore")
 
-    ensemble_precisions, ensemble_recalls, median_precisions, median_recalls = [], [], [], []
+    (ensemble_precisions, ensemble_recalls, median_precisions, median_recalls,
+     best_model_precisions, best_model_recalls) = [], [], [], [], [], []
     verbose = kwargs.pop('verbose', False)
-    model = kwargs.get('model','HGBC')
+    model = kwargs.get('model', 'HGBC')
+    n_repetitions = kwargs.get('n_repetitions', 10)
 
-    for i in range(len(list_features)):
+    for i in range(n_repetitions):
+        models = []
         _, _, _, _, timestrain, timestest = temporal_split(data, ['Bx', 'label_BL'],
-                                                              test_size=0.2,
-                                                              freq_split=timedelta(days=30))
+                                                           test_size=0.2,
+                                                           freq_split=kwargs.get('freq_split', timedelta(days=30)))
         testset = data.loc[timestest]
         trainset = data.loc[timestrain]
-        precisions, precisions2, recalls, recalls2 = [], [], [], []
+        precisions, recalls = [], []
 
         pred = np.zeros(len(testset))
         for columns in list_features:
@@ -743,28 +754,46 @@ def ensemble_learning_on_different_features(data, list_features, **kwargs):
             gb.fit(xtrain, ytrain)
             precisions, recalls = add_scores(gb, xtest, ytest, precisions, recalls)
             pred += gb.predict_proba(xtest)[:, 1]
+            models += [gb]
 
         pred = pred / len(list_features)
         pred = (pred > 0.5).astype('int')
-        _, _, _, _, precision, recall = compute_scores(pred.flatten(), ytest2.flatten())
+        _, _, _, _, precision, recall = compute_scores(pred.flatten(), ytest.flatten())
         ensemble_precisions += [precision]
         ensemble_recalls += [recall]
-        median_precisions += [np.median(np.array(precisions2))]
-        median_recalls += [np.median(np.array(recalls2))]
+        median_precisions += [np.median(np.array(precisions))]
+        median_recalls += [np.median(np.array(recalls))]
+        best_model_precisions += [np.max(np.array(precisions))]
+        best_model_recalls += [np.array(recalls)[np.argmax(np.array(precisions))]]
 
         if verbose:
             print(
-                f'For ensemble learning: precision = {round(precision * 100, 2)}% and recall = {round(recall * 100, 2)}%, from models with average precision = {round(np.median(np.array(precisions2)) * 100, 2)}% and average recall = {round(np.median(np.array(recalls2)) * 100, 2)}%.')
+                f'For ensemble learning: precision = {round(precision * 100, 2)}% '
+                f'and recall = {round(recall * 100, 2)}%, '
+                f'from models with average precision = {round(np.median(np.array(precisions)) * 100, 2)}% '
+                f'and average recall = {round(np.median(np.array(recalls)) * 100, 2)}%,\n'
+                f'and a best model with precision = {round(np.max(np.array(precisions)) * 100, 2)}% '
+                f'and recall = {round(np.array(recalls)[np.argmax(np.array(precisions))] * 100, 2)}%.')
 
-    if verbose:
-        plt.figure()
-        _ = plt.hist(np.array(ensemble_precisions) - np.array(median_precisions), bins=50, alpha=0.5,
-                     label='precisions')
-        _ = plt.hist(np.array(ensemble_recalls) - np.array(median_recalls), bins=50, alpha=0.5, label='recalls')
-        plt.legend()
-        plt.xlabel('Scores')
-        plt.ylabel('Count')
-        plt.title(f'Score gain from single models to ensemble models from {len(list_features)} single ones')
+    if kwargs.get('plot_verbose', True):
+        fig, ax = plt.subplots(ncols=2, figsize=(10, 5))
+
+        _ = ax[0].hist(np.array(ensemble_precisions) - np.array(best_model_precisions), bins=50, alpha=0.5,
+                       label='precisions')
+        _ = ax[0].hist(np.array(ensemble_recalls) - np.array(best_model_recalls), bins=50, alpha=0.5, label='recalls')
+        ax[0].legend()
+        ax[0].set_xlabel('Scores')
+        ax[0].set_ylabel('Count')
+
+        ax[1].scatter(np.array(ensemble_precisions), np.array(best_model_precisions), s=3, label='precisions')
+        ax[1].scatter(np.array(ensemble_recalls), np.array(best_model_recalls), s=3, label='recalls')
+        ax[1].legend()
+        ax[1].plot(np.linspace(0, 1, 100), np.linspace(0, 1, 100), linestyle='--', color='grey', alpha=0.5)
+        ax[1].set_xlabel('Ensemble scores')
+        ax[1].set_ylabel('Best model scores')
+
+        fig.suptitle(f'Score gain from best model to ensemble model from {len(list_features)} single ones')
 
     return (np.array(ensemble_precisions), np.array(ensemble_recalls),
-            np.array(median_precisions), np.array(median_recalls))
+            np.array(median_precisions), np.array(median_recalls),
+            np.array(best_model_precisions), np.array(best_model_recalls), np.array(models))
