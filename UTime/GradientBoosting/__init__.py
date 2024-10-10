@@ -723,7 +723,7 @@ def ensemble_learning_on_different_features(data, list_features, **kwargs):
     warnings.filterwarnings("ignore")
 
     (ensemble_precisions, ensemble_recalls, median_precisions, median_recalls,
-     best_model_precisions, best_model_recalls) = [], [], [], [], [], []
+     best_model_precisions, best_model_recalls, timestests) = [], [], [], [], [], [], []
     verbose = kwargs.pop('verbose', False)
     model = kwargs.get('model', 'HGBC')
     n_repetitions = kwargs.get('n_repetitions', 10)
@@ -733,6 +733,7 @@ def ensemble_learning_on_different_features(data, list_features, **kwargs):
         _, _, _, _, timestrain, timestest = temporal_split(data, ['Bx', 'label_BL'],
                                                            test_size=0.2,
                                                            freq_split=kwargs.get('freq_split', timedelta(days=30)))
+        timestests += [timestest]
         testset = data.loc[timestest]
         trainset = data.loc[timestrain]
         precisions, recalls = [], []
@@ -796,4 +797,5 @@ def ensemble_learning_on_different_features(data, list_features, **kwargs):
 
     return (np.array(ensemble_precisions), np.array(ensemble_recalls),
             np.array(median_precisions), np.array(median_recalls),
-            np.array(best_model_precisions), np.array(best_model_recalls), np.array(models))
+            np.array(best_model_precisions), np.array(best_model_recalls), np.array(models),
+            np.array(timestests))
