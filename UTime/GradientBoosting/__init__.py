@@ -11,6 +11,7 @@ from sklearn.metrics import auc
 import warnings
 from datetime import datetime
 from scipy.signal import medfilt
+import shap
 
 
 def split(all_data, columns, **kwargs):
@@ -799,3 +800,42 @@ def ensemble_learning_on_different_features(data, list_features, **kwargs):
             np.array(median_precisions), np.array(median_recalls),
             np.array(best_model_precisions), np.array(best_model_recalls), np.array(models),
             np.array(timestests))
+
+
+def get_all_features_ensemble_model(model_results):
+    all_features = []
+    for features in model_results['all_features']:
+        all_features += features
+    all_features = list(np.unique(np.array(all_features)).astype('str'))
+    return all_features
+
+
+def pred_ensemble(x, model_results):
+    pred = np.zeros(len(x))
+    for model, scaler, features in zip(model_results['models'], model_results['scalers'],
+                                       model_results['all_features']):
+        pred += model.predict_proba(scaler.transform(x[features]))[:, 1]
+    pred = pred / len(model_results['models'])
+    return pred
+
+
+def compute_shap_values_ensemble_learning(model_results, data, start, stop):
+    all_features = get_all_features_ensemble_model(model_results)
+    shap_values = pd.DataFrame(np.zeros(data.loc[start:stop, all_features].shape),
+                               index=data.loc[start:stop].index.values, columns=all_features)
+    count = 0
+    for model, scaler, features in zip(model_results['models'], model_results['scalers'],
+                                       model_results['all_features']):
+        count += 1
+
+        def pred(x):
+            return model.predict_proba(scaler.transform(x))[:, 1]
+
+        explainer = shap.Explainer(pred, data[features])
+        vals = explainer.shap_values(data.loc[start:stop, features])
+        shap_values[features] = shap_values[features].values + vals
+        print(f'Model {count} Shapley values done.')
+
+    shap_values = shap_values / len(model_results['models'])
+
+    return shap_values
