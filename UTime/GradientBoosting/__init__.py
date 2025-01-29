@@ -115,7 +115,8 @@ def temporal_split(data, columns, label_columns=None, test_size=0.2, **kwargs):
             timestrain, timestest)
 
 
-def compute_scores(pred, truth):
+def compute_scores(pred, truth, threshold=0.5):
+    pred = pred > threshold
     TP = (pred * truth).sum()
     FP = (pred * (1 - truth)).sum()
     TN = ((1 - pred) * (1-truth)).sum()
@@ -819,7 +820,10 @@ def pred_ensemble(x, model_results):
     return pred
 
 
-def compute_shap_values_ensemble_learning(model_results, data, start, stop):
+def compute_shap_values_ensemble_learning(model_results, data, **kwargs):
+    start = kwargs.get('start', data.index.values[0])
+    stop = kwargs.get('stop', data.index.values[-1])
+
     all_features = get_all_features_ensemble_model(model_results)
     shap_values = pd.DataFrame(np.zeros(data.loc[start:stop, all_features].shape),
                                index=data.loc[start:stop].index.values, columns=all_features)
