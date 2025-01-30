@@ -421,8 +421,13 @@ def get_name_choice(choice):
     return temp2
 
 
-def add_scores(gb, xtest, ytest, precisions, recalls):
-    pred = gb.predict(xtest)
+def add_scores(ytest, precisions, recalls, threshold=0.5, **kwargs):
+    if 'pred' in kwargs:
+        pred = kwargs['pred']
+    elif ('model' in kwargs) and ('xtest' in kwargs):
+        pred = kwargs['model'].predict_proba(kwargs['xtest'])
+    pred = (pred > threshold).astype('int')
+
     ytest = ytest.flatten()
     TP, FP, TN, FN, precision, recall = compute_scores(pred, ytest)
     precisions.append(precision)
@@ -450,9 +455,9 @@ def split_and_fit(data, columns, method_split, test_size, gbs, **kwargs):
     return xtest, ytest, gbs
 
 
-def x_y_set(set, scaler, columns):
-    y = set.label_BL.values
-    x = set[columns]
+def x_y_set(df, scaler, columns):
+    y = df.label_BL.values
+    x = df[columns]
     x.loc[:, :] = scaler.transform(x.values)
     return x, y
 
@@ -477,8 +482,9 @@ def fit_and_assess_on_different_and_common_testsets(df, testset2, columns, **kwa
 
     for i in range(n_iter):
         xtest, ytest, gbs = split_and_fit(data, columns, method_split, test_size, gbs, **kwargs)
-        precisions, recalls = add_scores(gbs[-1], xtest, ytest, precisions, recalls)
-        precisions2, recalls2 = add_scores(gbs[-1], xtest2, ytest2, precisions2, recalls2)
+        precisions, recalls = add_scores(ytest, precisions, recalls, model=gbs[-1], xtest=xtest)
+        precisions2, recalls2 = add_scores(ytest2, precisions2, recalls2, model=gbs[-1],
+                                           xtest=xtest2)
 
     if kwargs.get('verbose', False):
         print(
@@ -694,16 +700,14 @@ def ensemble_learning_on_same_model(data, columns, **kwargs):
         for gb in gbs:
             pred += gb.predict_proba(xtest2)[:, 1]
         pred = pred / n_iter
-        pred = (pred > 0.5).astype('int')
-        _, _, _, _, precision, recall = compute_scores(pred.flatten(), ytest2.flatten())
-        ensemble_precisions += [precision]
-        ensemble_recalls += [recall]
+
+        ensemble_precisions, ensemble_recalls = add_scores(ytest2, ensemble_precisions, ensemble_recalls, pred=pred)
         median_precisions += [np.median(np.array(precisions2))]
         median_recalls += [np.median(np.array(recalls2))]
 
         if verbose:
-            print(f'For ensemble learning: precision = {round(precision * 100, 2)}% '
-                  f'and recall = {round(recall * 100, 2)}%, from models '
+            print(f'For ensemble learning: precision = {round(ensemble_precisions[-1] * 100, 2)}% '
+                  f'and recall = {round(ensemble_recalls[-1] * 100, 2)}%, from models '
                   f'with average precision = {round(np.median(np.array(precisions2)) * 100, 2)}% '
                   f'and average recall = {round(np.median(np.array(recalls2)) * 100, 2)}%.')
 
@@ -755,15 +759,13 @@ def ensemble_learning_on_different_features(data, list_features, **kwargs):
                 raise Exception("Model should be GBC or HGBC")
 
             gb.fit(xtrain, ytrain)
-            precisions, recalls = add_scores(gb, xtest, ytest, precisions, recalls)
+            precisions, recalls = add_scores(ytest, precisions, recalls, model=gb, xtest=xtest)
             pred += gb.predict_proba(xtest)[:, 1]
             models += [gb]
 
         pred = pred / len(list_features)
-        pred = (pred > 0.5).astype('int')
-        _, _, _, _, precision, recall = compute_scores(pred.flatten(), ytest.flatten())
-        ensemble_precisions += [precision]
-        ensemble_recalls += [recall]
+
+        ensemble_precisions, ensemble_recalls = add_scores(ytest, ensemble_precisions, ensemble_recalls, pred=pred)
         median_precisions += [np.median(np.array(precisions))]
         median_recalls += [np.median(np.array(recalls))]
         best_model_precisions += [np.max(np.array(precisions))]
@@ -771,8 +773,8 @@ def ensemble_learning_on_different_features(data, list_features, **kwargs):
 
         if verbose:
             print(
-                f'For ensemble learning: precision = {round(precision * 100, 2)}% '
-                f'and recall = {round(recall * 100, 2)}%, '
+                f'For ensemble learning: precision = {round(ensemble_precisions[-1] * 100, 2)}% '
+                f'and recall = {round(ensemble_recalls[-1] * 100, 2)}%, '
                 f'from models with average precision = {round(np.median(np.array(precisions)) * 100, 2)}% '
                 f'and average recall = {round(np.median(np.array(recalls)) * 100, 2)}%,\n'
                 f'and a best model with precision = {round(np.max(np.array(precisions)) * 100, 2)}% '
@@ -843,3 +845,82 @@ def compute_shap_values_ensemble_learning(model_results, data, **kwargs):
     shap_values = shap_values / len(model_results['models'])
 
     return shap_values
+
+
+def fit_ensemble(dftrain, model_results):
+    """
+    Fits an ensemble of models, with the features and scalers given in model_results.
+    """
+    models = []
+
+    for scaler, features in zip(model_results['scalers'], model_results['all_features']):
+        # Scale THA data with MMS scaler
+        values = scaler.transform(dftrain[np.array(features)].values)
+
+        # fit the model
+        model = Hgbc()
+        model = model.fit(values, dftrain.label_BL.values)
+        models += [model]
+
+    return models
+
+
+def refit_ensemble(dftrain, model_results):
+    """
+    Applies transfert learning to an ensemble of models,
+    with the models, features and scalers given in model_results.
+    """
+    models = []
+
+    for scaler, features, model in zip(model_results['scalers'], model_results['all_features'],
+                                       model_results['models']):
+        # Scale THA data with MMS scaler
+        values = scaler.transform(dftrain[np.array(features)].values)
+
+        # fit the model
+        model = model.fit(values, dftrain.label_BL.values)
+        models += [model]
+
+    return models
+
+
+def scores(pred, label, threshold=0.5):
+    pred_class = pred > threshold
+
+    TP = (pred_class * label).sum()
+    FP = (pred_class * (1 - label)).sum()
+    FN = ((1 - pred_class) * label).sum()
+
+    precision = TP / (TP + FP)
+    recall = TP / (TP + FN)
+
+    return precision, recall
+
+
+def make_learning_curve(df, model_results):
+    precisions, recalls = [], []
+    test_sizes = np.linspace(0.05, 0.95, 50)
+    all_features = get_all_features_ensemble_model(model_results)
+
+    for test_size in test_sizes:
+        Xtrain, Xtest, ytrain, ytest, timestrain, timestest = split(df, all_features,
+                                                                    method_split='temporal',
+                                                                    test_size=test_size)
+        Xtrain = pd.DataFrame(Xtrain, columns=all_features)
+        Xtrain['label_BL'] = ytrain
+        Xtest = pd.DataFrame(Xtest, columns=all_features)
+
+        models = fit_ensemble(Xtrain, model_results)
+        pred = pred_ensemble(Xtest, {'all_features': model_results['all_features'],
+                                     'scalers': model_results['scalers'],
+                                     'models': models})
+        precision, recall = scores(pred, ytest)
+        precisions += [precision]
+        recalls += [recall]
+
+    plt.figure()
+    plt.plot(test_sizes, precisions, label='precision')
+    plt.plot(test_sizes, recalls, label='recall')
+    plt.xlim(0, 1)
+    plt.ylim(0, 1)
+    plt.legend()
