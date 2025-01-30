@@ -425,7 +425,7 @@ def add_scores(ytest, precisions, recalls, threshold=0.5, **kwargs):
     if 'pred' in kwargs:
         pred = kwargs['pred']
     elif ('model' in kwargs) and ('xtest' in kwargs):
-        pred = kwargs['model'].predict_proba(kwargs['xtest'])
+        pred = kwargs['model'].predict_proba(kwargs['xtest'])[:,1]
     pred = (pred > threshold).astype('int')
 
     ytest = ytest.flatten()
