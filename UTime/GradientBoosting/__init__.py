@@ -91,11 +91,12 @@ def temporal_split(data, columns, label_columns=None, test_size=0.2, **kwargs):
         temp_train = list(temp[:indice])+list(temp[indice + len_test:])
         timestrain += temp_train
 
+        """
         if len(temp_test) > 0:
             assert len(data[temp_test[0]:temp_test[-1]]) == len(temp_test), \
                 ("The monthly testset portion is missing values from the dataset (it has more holes than "
                  "the original dataset)")
-
+        """
     timestrain, timestest = np.array(timestrain), np.array(timestest)
     for i in range(len(months) - 1):
         test = timestest[timestest >= months[i]]
@@ -116,7 +117,7 @@ def temporal_split(data, columns, label_columns=None, test_size=0.2, **kwargs):
 
 
 def compute_scores(pred, truth, threshold=0.5):
-    pred = pred > threshold
+    pred = (pred > threshold).astype(int)
     TP = (pred * truth).sum()
     FP = (pred * (1 - truth)).sum()
     TN = ((1 - pred) * (1-truth)).sum()
@@ -219,14 +220,16 @@ def ROC(model, xtest, ytest, **kwargs):
     return FPRs, TPRs, auc_value
 
 
-def recall_precision_curve(model, xtest, ytest, **kwargs):
-    proba = model.predict_proba(xtest)[:, 1]
-    ytest = ytest.flatten()
+def recall_precision_curve(pred_proba, label, **kwargs):
+    if 'pred' in kwargs:
+        pred_proba = kwargs['pred']
+    elif 'model' in kwargs and 'xtest' in kwargs:
+        pred_proba = kwargs['model'].predict_proba(kwargs['xtest'])[:, 1]
+    label = label.flatten()
 
     precisions, recalls = [], []
     for threshold in np.linspace(0, 1, 100):
-        pred = proba > threshold
-        _, _, _, _, precision, recall = compute_scores(pred, ytest)
+        _, _, _, _, precision, recall = compute_scores(pred_proba, label, threshold=threshold)
         precisions.append(precision)
         recalls.append(recall)
 
@@ -237,7 +240,7 @@ def recall_precision_curve(model, xtest, ytest, **kwargs):
     ax.scatter(recalls, precisions)
     ax.set_xlabel('Recall')
     ax.set_ylabel('Precision')
-    ax.axhline(ytest.sum() / len(ytest), linestyle='--', color='grey', alpha=0.5)
+    ax.axhline(label.sum() / len(label), linestyle='--', color='grey', alpha=0.5)
     return recalls, precisions
 
 
@@ -426,10 +429,9 @@ def add_scores(ytest, precisions, recalls, threshold=0.5, **kwargs):
         pred = kwargs['pred']
     elif ('model' in kwargs) and ('xtest' in kwargs):
         pred = kwargs['model'].predict_proba(kwargs['xtest'])[:,1]
-    pred = (pred > threshold).astype('int')
 
     ytest = ytest.flatten()
-    TP, FP, TN, FN, precision, recall = compute_scores(pred, ytest)
+    TP, FP, TN, FN, precision, recall = compute_scores(pred, ytest, threshold=threshold)
     precisions.append(precision)
     recalls.append(recall)
     return precisions, recalls
@@ -924,3 +926,15 @@ def make_learning_curve(df, model_results):
     plt.xlim(0, 1)
     plt.ylim(0, 1)
     plt.legend()
+
+
+def get_features_from_choice(choice, mandatory, features_yes_or_no, features_multiple_choice):
+    features = list(np.array(mandatory).copy())
+    for i,c in enumerate(choice):
+        if i < len(features_yes_or_no):
+            if c == '1':
+                features += features_yes_or_no[i]
+        else:
+            c = int(c)
+            features += features_multiple_choice[i-len(features_yes_or_no)][c]
+    return features

@@ -93,7 +93,7 @@ def vary_parameter(windows, **kwargs):
         architecture = UTime(1, windows.win_length, len(windows.moments_features),
                              len(windows.spectro_features), d, nf, ks, 2)
         cv = cross_validation(architecture, windows, nb_iter, lf, test_ratio=te_p, train_ratio=tr_p, fig=fig,
-                              ax=axes[i, :], name=f'{variable} = {value}', **kwargs)
+                              ax=axes[i, :], name=name+f'{variable}={value}', **kwargs)
         pd.to_pickle(cv,f'/home/ghisalberti/BL_encoder_decoder/model/diagnostics/{name}.pkl')
         precisions, recalls, F1_scores = cv['precisions'], cv['recalls'], cv['F1_scores']
         TPRs, FPRs, AUCs = cv['TPRs'], cv['FPRs'], cv['AUCs']
