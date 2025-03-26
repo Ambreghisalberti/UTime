@@ -115,7 +115,7 @@ def temporal_split(data, columns, label_columns=None, test_size=0.2, **kwargs):
             subtest = dftest[dftest.sat.values == sat]
             assert len(
                 subtrain[subtrain.index.isin(subtest.index)]) == 0, \
-                "Trainset and testset should not have any point in common!"
+                f"Trainset and testset should not have any point in common for {sat}!"
     else:
         assert len(dftrain[dftrain.index.isin(dftest.index)]) == 0, \
         "Trainset and testset should not have any point in common!"
