@@ -109,8 +109,16 @@ def temporal_split(data, columns, label_columns=None, test_size=0.2, **kwargs):
     dftrain = data.loc[timestrain]
     dftest = data.loc[timestest]
 
-    assert len(
-        dftrain[dftrain.index.isin(dftest.index)]) == 0, "Trainset and testset should not have any point in common!"
+    if 'sat' in dftrain.columns:
+        for sat in np.unique(dftrain.sat.values):
+            subtrain = dftrain[dftrain.sat.values==sat]
+            subtest = dftest[dftest.sat.values == sat]
+            assert len(
+                subtrain[subtrain.index.isin(subtest.index)]) == 0, \
+                "Trainset and testset should not have any point in common!"
+    else:
+        assert len(dftrain[dftrain.index.isin(dftest.index)]) == 0, \
+        "Trainset and testset should not have any point in common!"
 
     return (dftrain.loc[:, columns].values, dftest.loc[:, columns].values,
             dftrain.loc[:, label_columns].values, dftest.loc[:, label_columns].values,
