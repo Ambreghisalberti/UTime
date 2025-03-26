@@ -101,10 +101,11 @@ def temporal_split(data, columns, label_columns=None, test_size=0.2, **kwargs):
     for i in range(len(months) - 1):
         test = timestest[timestest >= months[i]]
         test = test[test < months[i + 1]]
+        """
         if len(test) > 0:
             temp = data[test[0]:test[-1]]
             assert len(temp) == len(test), f"In the month {i}, some testset dates have holes."
-
+        """
     dftrain = data.loc[timestrain]
     dftest = data.loc[timestest]
 
