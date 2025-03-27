@@ -75,21 +75,28 @@ def temporal_split(data, columns, label_columns=None, test_size=0.2, **kwargs):
 '''
 
 
-def temporal_split(data, columns, label_columns=None, test_size=0.2, **kwargs):
+def temporal_split(data, columns, label_columns=None, test_size=0.2,
+                   resolution = np.timedelta64(5,'s'), **kwargs):
+    data['date'] = data.index.values
+    data = pd.DataFrame(data.values, columns=data.columns.values)
+
     if label_columns is None:
         label_columns = ['label_BL']
     timestrain, timestest = [], []
-    months = pd.date_range(start=data.index.values[0], end=data.index.values[-1],
-                           freq=kwargs.get('freq_split', timedelta(days=30)))
+    months = np.array(list(pd.date_range(start=data.date.values[0], end=data.date.values[-1],
+                                         freq=kwargs.get('freq_split', timedelta(days=30)))) + [
+                          pd.to_datetime(data.date.values[-1] + resolution)])
     for i in range(len(months) - 1):
-        temp = data[months[i]:months[i + 1]].iloc[:-1, :].index.values
+        temp = data[np.logical_and(data.date.values >= months[i], data.date.values < months[i + 1])].index.values
         # The goal is to not take the last point, as it will also be part of the next month
         len_test = int(len(temp) * test_size)
         indice = rd.randint(0, len(temp) - len_test)
         temp_test = list(temp[indice:indice + len_test])
         timestest += temp_test
-        temp_train = list(temp[:indice])+list(temp[indice + len_test:])
+        temp_train = list(temp[:indice]) + list(temp[indice + len_test:])
         timestrain += temp_train
+        assert len(temp_train) + len(temp_test) == len(
+            temp), f"Dataset should be split between train and test but {len(temp) - (len(temp_train) + len(temp_test))}/{len(temp)} points are left out for month {i}."
 
         """
         if len(temp_test) > 0:
@@ -98,27 +105,29 @@ def temporal_split(data, columns, label_columns=None, test_size=0.2, **kwargs):
                  "the original dataset)")
         """
     timestrain, timestest = np.array(timestrain), np.array(timestest)
-    for i in range(len(months) - 1):
-        test = timestest[timestest >= months[i]]
-        test = test[test < months[i + 1]]
-        """
-        if len(test) > 0:
-            temp = data[test[0]:test[-1]]
-            assert len(temp) == len(test), f"In the month {i}, some testset dates have holes."
-        """
-    dftrain = data.loc[timestrain]
+
+    dftrain = data.loc[
+        timestrain]  # Here what happens when the same date is here twice? Should give number indices instead of dates
     dftest = data.loc[timestest]
+
+    dftrain = pd.DataFrame(dftrain.values, index=dftrain.date.values, columns=dftrain.columns.values).drop(
+        columns=['date'])
+    dftest = pd.DataFrame(dftest.values, index=dftest.date.values, columns=dftest.columns.values).drop(columns=['date'])
 
     if 'sat' in dftrain.columns:
         for sat in np.unique(dftrain.sat.values):
-            subtrain = dftrain[dftrain.sat.values==sat]
+            subtrain = dftrain[dftrain.sat.values == sat]
             subtest = dftest[dftest.sat.values == sat]
             assert len(
                 subtrain[subtrain.index.isin(subtest.index)]) == 0, \
                 f"Trainset and testset should not have any point in common for {sat}!"
     else:
         assert len(dftrain[dftrain.index.isin(dftest.index)]) == 0, \
-        "Trainset and testset should not have any point in common!"
+            "Trainset and testset should not have any point in common!"
+
+    assert len(dftrain) + len(dftest) == len(data), (f"Dataset should be split between train and test but "
+                                                     f"{len(data) - (len(dftrain) + len(dftest))}/{len(data)} "
+                                                     f"points are left out.")
 
     return (dftrain.loc[:, columns].values, dftest.loc[:, columns].values,
             dftrain.loc[:, label_columns].values, dftest.loc[:, label_columns].values,
