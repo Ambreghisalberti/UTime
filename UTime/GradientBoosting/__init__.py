@@ -76,7 +76,7 @@ def temporal_split(data, columns, label_columns=None, test_size=0.2, **kwargs):
 
 
 def temporal_split(data, columns, label_columns=None, test_size=0.2,
-                   resolution = np.timedelta64(5,'s'), **kwargs):
+                   resolution=np.timedelta64(5,'s'), **kwargs):
     data['date'] = data.index.values
     data = pd.DataFrame(data.values, columns=data.columns.values)
 
@@ -106,8 +106,7 @@ def temporal_split(data, columns, label_columns=None, test_size=0.2,
         """
     timestrain, timestest = np.array(timestrain), np.array(timestest)
 
-    dftrain = data.loc[
-        timestrain]  # Here what happens when the same date is here twice? Should give number indices instead of dates
+    dftrain = data.loc[timestrain]  # Here what happens when the same date is here twice? Should give number indices instead of dates
     dftest = data.loc[timestest]
 
     dftrain = pd.DataFrame(dftrain.values, index=dftrain.date.values, columns=dftrain.columns.values).drop(
@@ -528,7 +527,7 @@ def measure_variability_scores(subdata, columns, **kwargs):
 
     nb_trys = kwargs.get('nb_trys', 5)
     for i in range(nb_trys):
-        _, _, _, _, df_times, testset2_times = temporal_split(subdata, ['Bx', 'label_BL'],
+        _, _, _, _, df_times, testset2_times = temporal_split(subdata, ['label_BL'],
                                                               test_size=0.2,
                                                               freq_split=timedelta(days=60))
         testset2 = subdata.loc[testset2_times]
@@ -701,7 +700,7 @@ def ensemble_learning_on_same_model(data, columns, **kwargs):
     verbose = kwargs.pop('verbose', False)
 
     for i in range(n_trys):
-        _, _, _, _, df_times, testset2_times = temporal_split(data, ['Bx', 'label_BL'],
+        _, _, _, _, df_times, testset2_times = temporal_split(data, ['label_BL'],
                                                               test_size=0.2,
                                                               freq_split=timedelta(days=60))
         testset2 = data.loc[testset2_times]
@@ -756,7 +755,7 @@ def ensemble_learning_on_different_features(data, list_features, **kwargs):
 
     for i in range(n_repetitions):
         models = []
-        _, _, _, _, timestrain, timestest = temporal_split(data, ['Bx', 'label_BL'],
+        _, _, _, _, timestrain, timestest = temporal_split(data, ['label_BL'],
                                                            test_size=0.2,
                                                            freq_split=kwargs.get('freq_split', timedelta(days=30)))
         timestests += [timestest]
