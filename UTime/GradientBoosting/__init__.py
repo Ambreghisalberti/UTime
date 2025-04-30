@@ -261,6 +261,13 @@ def recall_precision_curve(pred_proba, label, **kwargs):
     return recalls, precisions
 
 
+def find_best_threshold(pred_proba, label, **kwargs):
+    thresholds = np.linspace(0, 1, 100)
+    recalls, precisions = recall_precision_curve(pred_proba, label, **kwargs)
+    i = np.nanargmax(np.array(precisions)*np.array(recalls)).item()
+    return thresholds[i]
+
+
 def learning_curve(model, xtrain, ytrain, xtest, ytest, **kwargs):
     ytrain = ytrain.flatten()
     train_loss = [np.mean((np.array(proba[:, 1]) - np.array(ytrain)) ** 2) for proba in
