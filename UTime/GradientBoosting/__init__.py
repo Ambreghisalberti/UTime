@@ -90,14 +90,21 @@ def temporal_split(data, columns, label_columns=None, test_size=0.2,
         temp = data[np.logical_and(data.date.values >= months[i], data.date.values < months[i + 1])].index.values
         # The goal is to not take the last point, as it will also be part of the next month
         len_test = int(len(temp) * test_size)
-        indice = rd.randint(0, len(temp) - len_test)
-        temp_test = list(temp[indice:indice + len_test])
-        timestest += temp_test
-        temp_train = list(temp[:indice]) + list(temp[indice + len_test:])
-        timestrain += temp_train
-        assert len(temp_train) + len(temp_test) == len(
-            temp), f"Dataset should be split between train and test but {len(temp) - (len(temp_train) + len(temp_test))}/{len(temp)} points are left out for month {i}."
-
+        test = False
+        count = 0
+        while not test and count < 10:
+            indice = rd.randint(0, len(temp) - len_test)
+            temp_test = list(temp[indice:indice + len_test])
+            timestest += temp_test
+            temp_train = list(temp[:indice]) + list(temp[indice + len_test:])
+            timestrain += temp_train
+            test = len(temp_train) + len(temp_test) == len(temp)
+            # Dataset should be split between train and test but points are left out for month {i}.
+            count += 1
+        if count == 10:
+            raise Exception(f"Dataset should be split between train and test but after 10 tries, "
+                            f"{len(temp) - (len(temp_train) + len(temp_test))}/{len(temp)} points are "
+                            f"left out for month {i}.")
         """
         if len(temp_test) > 0:
             assert len(data[temp_test[0]:temp_test[-1]]) == len(temp_test), \
@@ -453,7 +460,7 @@ def add_scores(ytest, precisions, recalls, threshold=0.5, **kwargs):
         pred = kwargs['pred']
     elif ('model' in kwargs) and ('xtest' in kwargs):
         pred = kwargs['model'].predict_proba(kwargs['xtest'])[:,1]
-
+    pred = (pred > threshold).astype(int)
     ytest = ytest.flatten()
     TP, FP, TN, FN, precision, recall = compute_scores(pred, ytest, threshold=threshold)
     precisions.append(precision)

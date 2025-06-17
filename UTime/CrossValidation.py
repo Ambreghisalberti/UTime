@@ -254,7 +254,7 @@ def plot_mean(reference_x, x_list, y_list, **kwargs):
     reference_x = reference_x[reference_x>=min_mean]
     reference_x = reference_x[reference_x<=max_mean]
 
-    x_list, y_list = np.array(x_list), np.array(y_list)
+    #x_list, y_list = np.array(x_list), np.array(y_list)
 
     if 'fig' in kwargs and 'ax' in kwargs:
         fig = kwargs['fig']
@@ -262,7 +262,7 @@ def plot_mean(reference_x, x_list, y_list, **kwargs):
     else:
         fig, ax = plt.subplots(nrows=1, ncols=1)
 
-    interpolated_y = [[] for i in range(y_list.shape[0])]
+    interpolated_y = [[] for i in range(len(y_list))]
     for i in range(len(y_list)):
         interpolated_y[i] = scipy.interpolate.interp1d(x_list[i], y_list[i])(reference_x)
         ax.plot(x_list[i], y_list[i], color=kwargs.get('color','blue'), linewidth=0.5)
