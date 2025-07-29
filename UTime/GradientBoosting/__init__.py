@@ -12,6 +12,7 @@ import warnings
 from datetime import datetime
 from scipy.signal import medfilt
 import shap
+from spok.models.planetary import mp_shue1998_tangents, mp_shue1998_normal
 
 
 def split(all_data, columns, **kwargs):
@@ -969,3 +970,72 @@ def get_features_from_choice(choice, mandatory, features_yes_or_no, features_mul
             c = int(c)
             features += features_multiple_choice[i-len(features_yes_or_no)][c]
     return features
+
+
+def choose_best_features():
+    # Feature groups
+    mandatory = ['Bn_MP', 'Btan1_MP', 'Btan2_MP', 'max_coldions']  # 1
+    # mandatory = []
+
+    V_features = ['Vx', 'Vy', 'Vz']  # OR
+    V_features2 = ['Vtan1_MP', 'Vtan2_MP', 'Vn_MP']
+
+    norms = ['V', 'B']  # 0 or 1
+    jets = ['gap_to_MSH_Vtan1_MP_over_Va', 'gap_to_MSH_Vtan2_MP_over_Va']  # 0 or 1
+
+    particle = ['Np', 'Tp', 'anisotropy']  # OR
+    particle2 = ['Np', 'Tpara', 'Tperp']  # OR
+    log_particle = ['logNp', 'logTp', 'anisotropy']  # OR
+    log_particle2 = ['logNp', 'logTpara', 'logTperp']
+
+    spectro_features = [f'spectro_{i}' for i in range(32)]  # OR
+    peak_detection_features = ['energy_main_pop', 'width_main_pop', 'flux_main_pop']  # OR
+    # gaussian_fit_features = ['max_msp_popu','center_msp_popu','max_msh_popu','center_msh_popu']
+
+    cold_ions_more = ['center_coldions', 'std_coldions']  # 0 or 1
+
+    gap_to_MSH_features = ['gap_to_MSH_Vx', 'gap_to_MSH_Vy', 'gap_to_MSH_Vz', 'gap_to_MSH_V', 'gap_to_MSH_logTp',
+                           'gap_to_MSH_logNp', 'gap_to_MSH_anisotropy']  # OR
+    ref_MSH_features = ['ref_MSH_Vx', 'ref_MSH_Vy', 'ref_MSH_Vz', 'ref_MSH_V', 'ref_MSH_logTp', 'ref_MSH_logNp',
+                        'ref_MSH_anisotropy']  # OR
+    relative_gap_MSH_features = [f'relative_gap_with_MSH_{feat}' for feat in
+                                 ['Vx', 'Vy', 'Vz', 'V', 'Tp', 'Np', 'anisotropy']]
+
+    gap_to_MSH_features2 = [f'gap_to_MSH_{feat}' for feat in ['Vtan1_MP', 'Vtan2_MP', 'Vn_MP']]  # OR
+    ref_MSH_features2 = [f'ref_MSH_{feat}' for feat in ['Vtan1_MP', 'Vtan2_MP', 'Vn_MP']]  # OR
+    relative_gap_MSH_features2 = [f'relative_gap_with_MSH_{feat}' for feat in ['Vtan1_MP', 'Vtan2_MP', 'Vn_MP']]
+
+    individual_features = ['Bz_over_B']  # That don't fit in groups
+
+    # Feature selection setup
+    features_yes_or_no = [norms, jets, cold_ions_more, individual_features, gap_to_MSH_features2]
+    features_multiple_choice = [
+        [V_features, V_features2],
+        [particle, particle2, log_particle, log_particle2],
+        [spectro_features, peak_detection_features],  # gaussian_fit_features],
+        [gap_to_MSH_features, ref_MSH_features, relative_gap_MSH_features]
+    ]
+
+    choices = get_all_feature_choices(features_yes_or_no, features_multiple_choice)
+    features_combinaisons = get_all_feature_combinaisons_multiple_choices(features_yes_or_no, features_multiple_choice,
+                                                                          mandatory)
+
+    # Load performance data
+    precisions = pd.read_pickle('/home/ghisalberti/GradientBoosting/diagnostics/all_combinaisons/all_precisions.pkl')
+    recalls = pd.read_pickle('/home/ghisalberti/GradientBoosting/diagnostics/all_combinaisons/all_recalls.pkl')
+
+    # Filter best-performing combinations
+    all_features = []
+    for choice in np.array(list(precisions.keys()))[
+        np.logical_and(np.array(list(precisions.values())) > 0.83, np.array(list(recalls.values())) > 0.821)]:
+        # for choice in np.array(list(precisions.keys()))[np.array(list(precisions.values()))*np.array(list(recalls.values())) > 0.833**2]:
+        features = get_features_from_choice(choice, mandatory, features_yes_or_no, features_multiple_choice)
+        all_features.append(features)
+
+    # Get unique features across combinations
+    all_features_unique = []
+    for features in all_features:
+        all_features_unique += list(features)
+    all_features_unique = np.unique(np.array(all_features_unique + ['sat', 'label_BL']).flatten())
+
+    return all_features
